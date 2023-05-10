@@ -1,0 +1,13 @@
+syntax = "proto3";
+package relayer.provers.ethereum_light_client.config;
+
+import "gogoproto/gogo.proto";
+import "google/protobuf/any.proto";
+
+option go_package = "github.com/datachainlab/ethereum-ibc-relay-prover/relay";
+option (gogoproto.goproto_getters_all) = false;
+
+message ProverConfig {
+  string beacon_endpoint = 1;
+  string network = 2;
+}
