@@ -2,7 +2,6 @@ package relay
 
 import (
 	"fmt"
-	"math"
 
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 	"github.com/hyperledger-labs/yui-ibc-solidity/pkg/relay/ethereum"
@@ -69,20 +68,16 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{0, 0, 0, 0},
 			Forks: []*lctypes.Fork{
 				{
-					Version: []byte{1, 0, 0, 0},
-					Epoch:   74240,
+					Version: []byte{3, 0, 0, 0},
+					Epoch:   194048,
 				},
 				{
 					Version: []byte{2, 0, 0, 0},
 					Epoch:   144896,
 				},
 				{
-					Version: []byte{3, 0, 0, 0},
-					Epoch:   194048,
-				},
-				{
-					Version: []byte{4, 0, 0, 0},
-					Epoch:   math.MaxUint64,
+					Version: []byte{1, 0, 0, 0},
+					Epoch:   74240,
 				},
 			},
 		}
@@ -91,7 +86,7 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{0, 0, 0, 1},
 			Forks: []*lctypes.Fork{
 				{
-					Version: []byte{1, 0, 0, 1},
+					Version: []byte{3, 0, 0, 1},
 					Epoch:   0,
 				},
 				{
@@ -99,12 +94,8 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Epoch:   0,
 				},
 				{
-					Version: []byte{3, 0, 0, 1},
+					Version: []byte{1, 0, 0, 1},
 					Epoch:   0,
-				},
-				{
-					Version: []byte{4, 0, 0, 1},
-					Epoch:   math.MaxUint64,
 				},
 			},
 		}
@@ -113,20 +104,16 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{0, 0, 16, 32},
 			Forks: []*lctypes.Fork{
 				{
-					Version: []byte{1, 0, 16, 32},
-					Epoch:   36660,
+					Version: []byte{3, 0, 16, 32},
+					Epoch:   162304,
 				},
 				{
 					Version: []byte{2, 0, 16, 32},
 					Epoch:   112260,
 				},
 				{
-					Version: []byte{3, 0, 16, 32},
-					Epoch:   162304,
-				},
-				{
-					Version: []byte{4, 0, 0, 0},
-					Epoch:   math.MaxUint64,
+					Version: []byte{1, 0, 16, 32},
+					Epoch:   36660,
 				},
 			},
 		}
@@ -135,20 +122,16 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{144, 0, 0, 105},
 			Forks: []*lctypes.Fork{
 				{
-					Version: []byte{144, 0, 0, 112},
-					Epoch:   50,
+					Version: []byte{144, 0, 0, 114},
+					Epoch:   56832,
 				},
 				{
 					Version: []byte{144, 0, 0, 113},
 					Epoch:   100,
 				},
 				{
-					Version: []byte{144, 0, 0, 114},
-					Epoch:   56832,
-				},
-				{
-					Version: []byte{4, 0, 0, 0},
-					Epoch:   math.MaxUint64,
+					Version: []byte{144, 0, 0, 112},
+					Epoch:   50,
 				},
 			},
 		}
