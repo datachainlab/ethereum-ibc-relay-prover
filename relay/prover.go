@@ -222,8 +222,6 @@ func (pr *Prover) newClientState() *lctypes.ClientState {
 	var commitmentsSlot [32]byte
 	ibcAddress := pr.chain.Config().IBCAddress()
 
-	// TODO modify configs with the preset
-
 	return &lctypes.ClientState{
 		ForkParameters:               pr.config.getForkParameters(),
 		SecondsPerSlot:               pr.config.getSecondsPerSlot(),
