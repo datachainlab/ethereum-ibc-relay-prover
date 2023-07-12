@@ -3,7 +3,6 @@ package relay
 import (
 	"bytes"
 	"context"
-	"crypto/sha256"
 	"fmt"
 	"log"
 	"time"
@@ -326,6 +325,15 @@ var _ core.Prover = (*Prover)(nil)
 
 // ProveState returns the proof of an IBC state specified by `path` and `value`
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
-	h := sha256.Sum256(value)
-	return h[:], ctx.Height().(clienttypes.Height), nil
+	proofHeight := int64(ctx.Height().GetRevisionHeight())
+	height := pr.newHeight(proofHeight)
+	proof, err := pr.buildStateProof([]byte(path), proofHeight)
+	if err != nil {
+		return nil, height, err
+	}
+	return proof, height, nil
+}
+
+func (pr *Prover) newHeight(blockNumber int64) clienttypes.Height {
+	return clienttypes.NewHeight(0, uint64(blockNumber))
 }
