@@ -328,10 +328,7 @@ func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) (
 	proofHeight := int64(ctx.Height().GetRevisionHeight())
 	height := pr.newHeight(proofHeight)
 	proof, err := pr.buildStateProof([]byte(path), proofHeight)
-	if err != nil {
-		return nil, height, err
-	}
-	return proof, height, nil
+	return proof, height, err
 }
 
 func (pr *Prover) newHeight(blockNumber int64) clienttypes.Height {

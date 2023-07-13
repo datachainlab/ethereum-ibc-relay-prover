@@ -7,4 +7,5 @@ protoImage=$(DOCKER) run --user 0 --rm -v $(CURDIR):/workspace --workdir /worksp
 .PHONY: proto-gen
 proto-gen:
 	@echo "Generating Protobuf files"
+	@mkdir -p ./proto/ibc/lightclients/ethereum/v1
 	@$(protoImage) sh ./scripts/protocgen.sh
