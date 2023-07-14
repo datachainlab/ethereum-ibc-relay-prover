@@ -319,9 +319,9 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 	}, nil
 }
 
-//--------- IBCProvableQuerier implementation ---------//
+//--------- StateProver implementation ---------//
 
-var _ core.Prover = (*Prover)(nil)
+var _ core.StateProver = (*Prover)(nil)
 
 // ProveState returns the proof of an IBC state specified by `path` and `value`
 func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
