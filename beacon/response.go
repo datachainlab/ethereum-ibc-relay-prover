@@ -5,11 +5,11 @@ import (
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/prysmaticlabs/prysm/v3/api/client/builder"
-	"github.com/prysmaticlabs/prysm/v3/beacon-chain/rpc/apimiddleware"
-	"github.com/prysmaticlabs/prysm/v3/consensus-types/primitives"
-	enginev1 "github.com/prysmaticlabs/prysm/v3/proto/engine/v1"
-	types "github.com/prysmaticlabs/prysm/v3/validator/keymanager/remote-web3signer/v1"
+	"github.com/prysmaticlabs/prysm/v4/api/client/builder"
+	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/apimiddleware"
+	"github.com/prysmaticlabs/prysm/v4/consensus-types/primitives"
+	enginev1 "github.com/prysmaticlabs/prysm/v4/proto/engine/v1"
+	types "github.com/prysmaticlabs/prysm/v4/validator/keymanager/remote-web3signer/v1"
 )
 
 // Primitives

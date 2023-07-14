@@ -5,9 +5,8 @@ import (
 	"encoding/binary"
 
 	fastssz "github.com/prysmaticlabs/fastssz"
-	"github.com/prysmaticlabs/prysm/v3/crypto/hash"
-	"github.com/prysmaticlabs/prysm/v3/encoding/ssz"
-	enginev1 "github.com/prysmaticlabs/prysm/v3/proto/engine/v1"
+	"github.com/prysmaticlabs/prysm/v4/encoding/ssz"
+	enginev1 "github.com/prysmaticlabs/prysm/v4/proto/engine/v1"
 )
 
 func generate_merkle_proof(leaves [][]byte, generalizedIndex int) ([][]byte, error) {
@@ -75,7 +74,6 @@ func extraDataRootBytes(tx []byte) []byte {
 }
 
 func extraDataRoot(bz []byte) ([32]byte, error) {
-	hasher := hash.CustomSHA256Hasher()
 	chunkedRoots, err := ssz.PackByChunk([][]byte{bz})
 	if err != nil {
 		return [32]byte{}, err
@@ -83,7 +81,7 @@ func extraDataRoot(bz []byte) ([32]byte, error) {
 	const MAX_EXTRA_DATA_BYTES = 32
 
 	maxLength := (MAX_EXTRA_DATA_BYTES + 31) / 32
-	bytesRoot, err := ssz.BitwiseMerkleize(hasher, chunkedRoots, uint64(len(chunkedRoots)), uint64(maxLength))
+	bytesRoot, err := ssz.BitwiseMerkleize(chunkedRoots, uint64(len(chunkedRoots)), uint64(maxLength))
 	if err != nil {
 		return [32]byte{}, err
 	}
