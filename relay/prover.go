@@ -111,8 +111,10 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, lat
 		return nil, err
 	}
 
-	if cs.GetLatestHeight().GetRevisionHeight() >= finalizedHeader.ExecutionUpdate.BlockNumber {
-		return nil, fmt.Errorf("the latest finalized header is equal to or older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", finalizedHeader.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
+	if cs.GetLatestHeight().GetRevisionHeight() == finalizedHeader.ExecutionUpdate.BlockNumber {
+		return nil, nil
+	} else if cs.GetLatestHeight().GetRevisionHeight() > finalizedHeader.ExecutionUpdate.BlockNumber {
+		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", finalizedHeader.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
 	}
 
 	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(finalizedHeader.ConsensusUpdate.FinalizedHeader.Slot))
