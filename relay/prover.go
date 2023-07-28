@@ -9,11 +9,8 @@ import (
 
 	"github.com/cosmos/cosmos-sdk/codec"
 	sdk "github.com/cosmos/cosmos-sdk/types"
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	conntypes "github.com/cosmos/ibc-go/v4/modules/core/03-connection/types"
-	chantypes "github.com/cosmos/ibc-go/v4/modules/core/04-channel/types"
-	host "github.com/cosmos/ibc-go/v4/modules/core/24-host"
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/client"
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/relay/ethereum"
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
@@ -114,8 +111,10 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, lat
 		return nil, err
 	}
 
-	if cs.GetLatestHeight().GetRevisionHeight() >= finalizedHeader.ExecutionUpdate.BlockNumber {
-		return nil, fmt.Errorf("the latest finalized header is equal to or older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", finalizedHeader.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
+	if cs.GetLatestHeight().GetRevisionHeight() == finalizedHeader.ExecutionUpdate.BlockNumber {
+		return nil, nil
+	} else if cs.GetLatestHeight().GetRevisionHeight() > finalizedHeader.ExecutionUpdate.BlockNumber {
+		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", finalizedHeader.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
 	}
 
 	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(finalizedHeader.ConsensusUpdate.FinalizedHeader.Slot))
@@ -322,124 +321,16 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 	}, nil
 }
 
-//--------- IBCProvableQuerier implementation ---------//
+//--------- StateProver implementation ---------//
 
-var _ core.IBCProvableQuerier = (*Prover)(nil)
+var _ core.StateProver = (*Prover)(nil)
 
-// QueryClientConsensusState returns the ClientConsensusState and its proof
-func (pr *Prover) QueryClientConsensusStateWithProof(ctx core.QueryContext, dstClientConsHeight ibcexported.Height) (*clienttypes.QueryConsensusStateResponse, error) {
-	res, err := pr.chain.QueryClientConsensusState(ctx, dstClientConsHeight)
-	if err != nil {
-		return nil, err
-	}
+// ProveState returns the proof of an IBC state specified by `path` and `value`
+func (pr *Prover) ProveState(ctx core.QueryContext, path string, value []byte) ([]byte, clienttypes.Height, error) {
 	proofHeight := int64(ctx.Height().GetRevisionHeight())
-	res.Proof, err = pr.buildStateProof(host.FullConsensusStateKey(
-		pr.chain.Path().ClientID,
-		dstClientConsHeight,
-	), proofHeight)
-	if err != nil {
-		return nil, err
-	}
-	res.ProofHeight = pr.newHeight(proofHeight)
-	return res, nil
-}
-
-// QueryClientStateWithProof returns the ClientState and its proof
-func (pr *Prover) QueryClientStateWithProof(ctx core.QueryContext) (*clienttypes.QueryClientStateResponse, error) {
-	res, err := pr.chain.QueryClientState(ctx)
-	if err != nil {
-		return nil, err
-	}
-	proofHeight := int64(ctx.Height().GetRevisionHeight())
-	res.Proof, err = pr.buildStateProof(host.FullClientStateKey(
-		pr.chain.Path().ClientID,
-	), proofHeight)
-	if err != nil {
-		return nil, err
-	}
-	res.ProofHeight = pr.newHeight(proofHeight)
-	return res, nil
-}
-
-// QueryConnectionWithProof returns the Connection and its proof
-func (pr *Prover) QueryConnectionWithProof(ctx core.QueryContext) (*conntypes.QueryConnectionResponse, error) {
-	res, err := pr.chain.QueryConnection(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if res.Connection.State == conntypes.UNINITIALIZED {
-		// connection not found
-		return res, nil
-	}
-	proofHeight := int64(ctx.Height().GetRevisionHeight())
-	res.Proof, err = pr.buildStateProof(host.ConnectionKey(
-		pr.chain.Path().ConnectionID,
-	), proofHeight)
-	if err != nil {
-		return nil, err
-	}
-	res.ProofHeight = pr.newHeight(proofHeight)
-	return res, nil
-}
-
-// QueryChannelWithProof returns the Channel and its proof
-func (pr *Prover) QueryChannelWithProof(ctx core.QueryContext) (chanRes *chantypes.QueryChannelResponse, err error) {
-	res, err := pr.chain.QueryChannel(ctx)
-	if err != nil {
-		return nil, err
-	}
-	if res.Channel.State == chantypes.UNINITIALIZED {
-		// channel not found
-		return res, nil
-	}
-	proofHeight := int64(ctx.Height().GetRevisionHeight())
-	res.Proof, err = pr.buildStateProof(host.ChannelKey(
-		pr.chain.Path().PortID,
-		pr.chain.Path().ChannelID,
-	), proofHeight)
-	if err != nil {
-		return nil, err
-	}
-	res.ProofHeight = pr.newHeight(proofHeight)
-	return res, nil
-}
-
-// QueryPacketCommitmentWithProof returns the packet commitment and its proof
-func (pr *Prover) QueryPacketCommitmentWithProof(ctx core.QueryContext, seq uint64) (comRes *chantypes.QueryPacketCommitmentResponse, err error) {
-	res, err := pr.chain.QueryPacketCommitment(ctx, seq)
-	if err != nil {
-		return nil, err
-	}
-	proofHeight := int64(ctx.Height().GetRevisionHeight())
-	res.Proof, err = pr.buildStateProof(host.PacketCommitmentKey(
-		pr.chain.Path().PortID,
-		pr.chain.Path().ChannelID,
-		seq,
-	), proofHeight)
-	if err != nil {
-		return nil, err
-	}
-	res.ProofHeight = pr.newHeight(proofHeight)
-	return res, nil
-}
-
-// QueryPacketAcknowledgementCommitmentWithProof returns the packet acknowledgement commitment and its proof
-func (pr *Prover) QueryPacketAcknowledgementCommitmentWithProof(ctx core.QueryContext, seq uint64) (ackRes *chantypes.QueryPacketAcknowledgementResponse, err error) {
-	res, err := pr.chain.QueryPacketAcknowledgementCommitment(ctx, seq)
-	if err != nil {
-		return nil, err
-	}
-	proofHeight := int64(ctx.Height().GetRevisionHeight())
-	res.Proof, err = pr.buildStateProof(host.PacketAcknowledgementKey(
-		pr.chain.Path().PortID,
-		pr.chain.Path().ChannelID,
-		seq,
-	), proofHeight)
-	if err != nil {
-		return nil, err
-	}
-	res.ProofHeight = pr.newHeight(proofHeight)
-	return res, nil
+	height := pr.newHeight(proofHeight)
+	proof, err := pr.buildStateProof([]byte(path), proofHeight)
+	return proof, height, err
 }
 
 func (pr *Prover) newHeight(blockNumber int64) clienttypes.Height {

@@ -3,7 +3,7 @@ package relay
 import (
 	"fmt"
 
-	ibcexported "github.com/cosmos/ibc-go/v4/modules/core/exported"
+	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 )

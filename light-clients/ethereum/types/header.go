@@ -1,11 +1,11 @@
 package types
 
 import (
-	clienttypes "github.com/cosmos/ibc-go/v4/modules/core/02-client/types"
-	"github.com/cosmos/ibc-go/v4/modules/core/exported"
+	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
+	"github.com/cosmos/ibc-go/v7/modules/core/exported"
 )
 
-var _ exported.Header = (*Header)(nil)
+var _ exported.ClientMessage = (*Header)(nil)
 
 func (h *Header) ClientType() string {
 	return ClientType
