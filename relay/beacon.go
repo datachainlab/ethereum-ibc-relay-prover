@@ -95,12 +95,12 @@ func (pr *Prover) findLCPeriodByHeight(height ibcexported.Height, latestPeriod u
 	return 0, fmt.Errorf("something wong...: target_block_number=%v latest_period=%v", bn, latestPeriod)
 }
 
-func (pr *Prover) buildExecutionUpdate(executionHeader beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
-	stateRootBranch, err := generate_execution_payload_proof(&executionHeader, EXECUTION_STATE_ROOT_INDEX)
+func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
+	stateRootBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_STATE_ROOT_INDEX)
 	if err != nil {
 		return nil, err
 	}
-	blockNumberBranch, err := generate_execution_payload_proof(&executionHeader, EXECUTION_BLOCK_NUMBER_INDEX)
+	blockNumberBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_BLOCK_NUMBER_INDEX)
 	if err != nil {
 		return nil, err
 	}

@@ -192,7 +192,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 		return nil, err
 	}
 	lcUpdate := res.Data.ToProto()
-	executionHeader := res.Data.FinalizedHeader.Execution
+	executionHeader := &res.Data.FinalizedHeader.Execution
 	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
 	if err != nil {
 		return nil, err
@@ -245,7 +245,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForCurrent(period uint64, trustedH
 		return nil, err
 	}
 	lcUpdate := res.Data.ToProto()
-	executionHeader := res.Data.FinalizedHeader.Execution
+	executionHeader := &res.Data.FinalizedHeader.Execution
 	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
 	if err != nil {
 		return nil, err
@@ -292,7 +292,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 	}
 	lcUpdate := res.Data.ToProto()
 	executionHeader := res.Data.FinalizedHeader.Execution
-	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
+	executionUpdate, err := pr.buildExecutionUpdate(&executionHeader)
 	if err != nil {
 		return nil, err
 	}
