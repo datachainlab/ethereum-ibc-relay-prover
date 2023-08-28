@@ -1,8 +1,14 @@
+// This is a fork version from https://github.com/datachainlab/ethereum-ibc-rs/blob/v0.0.5/proto/definitions/ibc/lightclients/ethereum/v1/ethereum.proto
+// WARNINGS: We should only apply to the gogoproto extension here and should never make any changes to the message format(includes a field type and order).
 syntax = "proto3";
 package ibc.lightclients.ethereum.v1;
 
 option go_package = "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types";
 import "ibc/core/client/v1/client.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "gogoproto/gogo.proto";
+option (gogoproto.goproto_getters_all) = false;
 
 message ClientState {
   bytes genesis_validators_root = 1;
@@ -17,17 +23,18 @@ message ClientState {
   bytes ibc_commitments_slot = 9;
 
   Fraction trust_level = 10;
-  uint64 trusting_period = 11;
+  google.protobuf.Duration trusting_period = 11 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
+  google.protobuf.Duration max_clock_drift = 12 [(gogoproto.nullable) = false, (gogoproto.stdduration) = true];
 
-  uint64 latest_slot = 12;
-  uint64 latest_execution_block_number = 13;
-  ibc.core.client.v1.Height frozen_height = 14;
+  uint64 latest_slot = 13;
+  uint64 latest_execution_block_number = 14;
+  ibc.core.client.v1.Height frozen_height = 15;
 }
 
 message ConsensusState {
   uint64 slot = 1;
   bytes storage_root = 2;
-  uint64 timestamp = 3;
+  google.protobuf.Timestamp timestamp = 3 [(gogoproto.nullable) = false, (gogoproto.stdtime) = true];
   bytes current_sync_committee = 4;
   bytes next_sync_committee = 5;
 }
@@ -37,6 +44,7 @@ message Header {
   LightClientUpdate consensus_update = 2;
   ExecutionUpdate execution_update = 3;
   AccountUpdate account_update = 4;
+  // seconds from unix epoch
   uint64 timestamp = 5;
 }
 

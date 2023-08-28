@@ -1,3 +1,0 @@
-[submodule "ethereum-ibc-rs"]
-	path = ethereum-ibc-rs
-	url = https://github.com/datachainlab/ethereum-ibc-rs

@@ -2,6 +2,7 @@ package relay
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/relay/ethereum"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
@@ -20,9 +21,30 @@ var _ core.ProverConfig = (*ProverConfig)(nil)
 func (prc ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 	ec, ok := chain.(*ethereum.Chain)
 	if !ok {
-		return nil, fmt.Errorf("unexpected chain: %T", chain)
+		return nil, fmt.Errorf("expected chain type is %T, but got %T", &ethereum.Chain{}, chain)
+	}
+	if err := prc.Validate(); err != nil {
+		return nil, err
 	}
 	return NewProver(ec, prc), nil
+}
+
+func (prc ProverConfig) Validate() error {
+	if prc.Network == "" {
+		return fmt.Errorf("network is required")
+	}
+	if prc.BeaconEndpoint == "" {
+		return fmt.Errorf("endpoint is required")
+	}
+	_, err := time.ParseDuration(prc.TrustingPeriod)
+	if err != nil {
+		return err
+	}
+	_, err = time.ParseDuration(prc.MaxClockDrift)
+	if err != nil {
+		return err
+	}
+	return nil
 }
 
 // NOTE the prover supports only the mainnet and minimal preset for now

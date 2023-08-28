@@ -20,3 +20,7 @@ func (cs *ConsensusState) GetRoot() exported.Root {
 func (cs *ConsensusState) ValidateBasic() error {
 	return nil
 }
+
+func (cs *ConsensusState) GetTimestamp() uint64 {
+	return uint64(cs.Timestamp.UnixNano())
+}

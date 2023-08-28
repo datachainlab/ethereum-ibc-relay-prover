@@ -83,7 +83,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 	consensusState := &lctypes.ConsensusState{
 		Slot:                 clientState.LatestSlot,
 		StorageRoot:          accountUpdate.AccountStorageRoot,
-		Timestamp:            bootstrap.Header.Execution.Timestamp,
+		Timestamp:            time.Unix(int64(bootstrap.Header.Execution.Timestamp), 0),
 		CurrentSyncCommittee: bootstrap.CurrentSyncCommittee.AggregatePubKey,
 	}
 
@@ -221,6 +221,15 @@ func (pr *Prover) newClientState() *lctypes.ClientState {
 	var commitmentsSlot [32]byte
 	ibcAddress := pr.chain.Config().IBCAddress()
 
+	tp, err := time.ParseDuration(pr.config.TrustingPeriod)
+	if err != nil {
+		panic(err)
+	}
+	cd, err := time.ParseDuration(pr.config.MaxClockDrift)
+	if err != nil {
+		panic(err)
+	}
+
 	return &lctypes.ClientState{
 		ForkParameters:               pr.config.getForkParameters(),
 		SecondsPerSlot:               pr.config.getSecondsPerSlot(),
@@ -235,7 +244,8 @@ func (pr *Prover) newClientState() *lctypes.ClientState {
 			Numerator:   2,
 			Denominator: 3,
 		},
-		TrustingPeriod: 0,
+		TrustingPeriod: tp,
+		MaxClockDrift:  cd,
 	}
 }
 
