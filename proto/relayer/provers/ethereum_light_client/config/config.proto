@@ -10,4 +10,6 @@ option (gogoproto.goproto_getters_all) = false;
 message ProverConfig {
   string beacon_endpoint = 1;
   string network = 2;
+  string trusting_period = 3;
+  string max_clock_drift = 4;
 }
