@@ -61,20 +61,28 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 	// So, we don't use it here, use the result of `light_client_update` to create an initial state instead.
 	_ = dstHeader.(*lctypes.Header)
 
+	log.Println("ether> pr.beaconClient.GetGenesis()")
 	genesis, err := pr.beaconClient.GetGenesis()
+	log.Println("ether< pr.beaconClient.GetGenesis()")
 	if err != nil {
 		return nil, err
 	}
+	log.Println("ether> pr.getLightClientBootstrap()")
 	bootstrap, err := pr.getLightClientBootstrap()
+	log.Println("ether< pr.getLightClientBootstrap()")
 	if err != nil {
 		return nil, err
 	}
+	log.Println("ether> pr.buildAccountUpdate()")
 	accountUpdate, err := pr.buildAccountUpdate(bootstrap.Header.Execution.BlockNumber)
+	log.Println("ether< pr.buildAccountUpdate()")
 	if err != nil {
 		return nil, err
 	}
 
+	log.Println("ether> pr.newClientState()")
 	clientState := pr.newClientState()
+	log.Println("ether< pr.newClientState()")
 	clientState.GenesisValidatorsRoot = genesis.GenesisValidatorsRoot[:]
 	clientState.GenesisTime = genesis.GenesisTimeSeconds
 	clientState.LatestSlot = uint64(bootstrap.Header.Beacon.Slot)
@@ -187,17 +195,23 @@ func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, lat
 // GetLatestFinalizedHeader returns the latest finalized header on this chain
 // The returned header is expected to be the latest one of headers that can be verified by the light client
 func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
+	log.Println("ether> pr.beaconClient.GetLightClientFinalityUpdate()")
 	res, err := pr.beaconClient.GetLightClientFinalityUpdate()
+	log.Println("ether< pr.beaconClient.GetLightClientFinalityUpdate()")
 	if err != nil {
 		return nil, err
 	}
 	lcUpdate := res.Data.ToProto()
 	executionHeader := res.Data.FinalizedHeader.Execution
+	log.Println("ether> pr.buildExecutionUpdate()")
 	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
+	log.Println("ether< pr.buildExecutionUpdate()")
 	if err != nil {
 		return nil, err
 	}
+	log.Println("ether> executionHeader.HashTreeRoot()")
 	executionRoot, err := executionHeader.HashTreeRoot()
+	log.Println("ether< executionHeader.HashTreeRoot()")
 	if err != nil {
 		return nil, err
 	}
@@ -205,7 +219,9 @@ func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 		return nil, fmt.Errorf("execution root mismatch: %X != %X", executionRoot, lcUpdate.FinalizedExecutionRoot)
 	}
 
+	log.Println("ether> pr.buildAccountUpdate()")
 	accountUpdate, err := pr.buildAccountUpdate(executionHeader.BlockNumber)
+	log.Println("ether< pr.buildAccountUpdate()")
 	if err != nil {
 		return nil, err
 	}
