@@ -44,6 +44,9 @@ func (prc ProverConfig) Validate() error {
 	if err != nil {
 		return err
 	}
+	if prc.RefreshThresholdRate <= 0 {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate\" is too small: %v", prc.RefreshThresholdRate)
+	}
 	return nil
 }
 
