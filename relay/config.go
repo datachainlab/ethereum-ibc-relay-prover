@@ -47,6 +47,22 @@ func (prc ProverConfig) Validate() error {
 	return nil
 }
 
+func (prc *ProverConfig) GetTrustingPeriod() time.Duration {
+	if d, err := time.ParseDuration(prc.TrustingPeriod); err != nil {
+		panic(err)
+	} else {
+		return d
+	}
+}
+
+func (prc *ProverConfig) GetMaxClockDrift() time.Duration {
+	if d, err := time.ParseDuration(prc.MaxClockDrift); err != nil {
+		panic(err)
+	} else {
+		return d
+	}
+}
+
 // NOTE the prover supports only the mainnet and minimal preset for now
 func (prc *ProverConfig) IsMainnetPreset() bool {
 	switch prc.Network {

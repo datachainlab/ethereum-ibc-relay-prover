@@ -12,4 +12,5 @@ message ProverConfig {
   string network = 2;
   string trusting_period = 3;
   string max_clock_drift = 4;
+  double refresh_threshold_rate = 5;
 }
