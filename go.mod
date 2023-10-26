@@ -2,15 +2,13 @@ module github.com/datachainlab/ethereum-ibc-relay-prover
 
 go 1.20
 
-replace github.com/hyperledger-labs/yui-relayer => github.com/siburu/yui-relayer v0.0.0-20231023105358-fdb2e2eefa4b
-
 require (
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/cosmos/gogoproto v1.4.10
 	github.com/cosmos/ibc-go/v7 v7.2.0
 	github.com/datachainlab/ethereum-ibc-relay-chain v0.2.6
 	github.com/ethereum/go-ethereum v1.12.0
-	github.com/hyperledger-labs/yui-relayer v0.4.14
+	github.com/hyperledger-labs/yui-relayer v0.4.15
 	github.com/prysmaticlabs/fastssz v0.0.0-20220628121656-93dfe28febab
 	github.com/prysmaticlabs/prysm/v4 v4.0.7
 	github.com/spf13/cobra v1.7.0
