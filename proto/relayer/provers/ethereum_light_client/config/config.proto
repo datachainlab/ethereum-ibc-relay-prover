@@ -12,4 +12,10 @@ message ProverConfig {
   string network = 2;
   string trusting_period = 3;
   string max_clock_drift = 4;
+  Fraction refresh_threshold_rate = 5;
+}
+
+message Fraction {
+  uint64 numerator   = 1;
+  uint64 denominator = 2;
 }

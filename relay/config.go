@@ -44,7 +44,32 @@ func (prc ProverConfig) Validate() error {
 	if err != nil {
 		return err
 	}
+	if prc.RefreshThresholdRate.Denominator == 0 {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate.denominator\" must not be zero")
+	}
+	if prc.RefreshThresholdRate.Numerator == 0 {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate.numerator\" must not be zero")
+	}
+	if prc.RefreshThresholdRate.Numerator > prc.RefreshThresholdRate.Denominator {
+		return fmt.Errorf("config attribute \"refresh_threshold_rate\" must be less than or equal to 1.0: actual=%v/%v", prc.RefreshThresholdRate.Numerator, prc.RefreshThresholdRate.Denominator)
+	}
 	return nil
+}
+
+func (prc *ProverConfig) GetTrustingPeriod() time.Duration {
+	if d, err := time.ParseDuration(prc.TrustingPeriod); err != nil {
+		panic(err)
+	} else {
+		return d
+	}
+}
+
+func (prc *ProverConfig) GetMaxClockDrift() time.Duration {
+	if d, err := time.ParseDuration(prc.MaxClockDrift); err != nil {
+		panic(err)
+	} else {
+		return d
+	}
 }
 
 // NOTE the prover supports only the mainnet and minimal preset for now
