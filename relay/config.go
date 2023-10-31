@@ -44,6 +44,9 @@ func (prc ProverConfig) Validate() error {
 	if err != nil {
 		return err
 	}
+	if prc.RefreshThresholdRate == nil {
+		return fmt.Errorf("\"refresh_threshold_rate\" is required")
+	}
 	if prc.RefreshThresholdRate.Denominator == 0 {
 		return fmt.Errorf("config attribute \"refresh_threshold_rate.denominator\" must not be zero")
 	}
