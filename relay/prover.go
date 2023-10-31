@@ -93,7 +93,7 @@ func (pr *Prover) CreateMsgCreateClient(clientID string, dstHeader core.Header, 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 // The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 // if the header slice's length == 0 and err == nil, the relayer should skips the update-client
-func (pr *Prover) SetupHeadersForUpdate(dstChain core.ChainInfoICS02Querier, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(dstChain core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	finalizedHeader := latestFinalizedHeader.(*lctypes.Header)
 
 	latestHeight, err := dstChain.LatestHeight()
