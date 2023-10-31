@@ -8,7 +8,7 @@ require (
 	github.com/cosmos/ibc-go/v7 v7.2.0
 	github.com/datachainlab/ethereum-ibc-relay-chain v0.2.6
 	github.com/ethereum/go-ethereum v1.12.0
-	github.com/hyperledger-labs/yui-relayer v0.4.15
+	github.com/hyperledger-labs/yui-relayer v0.4.17
 	github.com/prysmaticlabs/fastssz v0.0.0-20220628121656-93dfe28febab
 	github.com/prysmaticlabs/prysm/v4 v4.0.7
 	github.com/spf13/cobra v1.7.0
