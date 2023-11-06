@@ -3,7 +3,6 @@ package relay
 import (
 	"fmt"
 
-	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 )
@@ -57,7 +56,7 @@ func (pr *Prover) getLightClientBootstrap() (*beacon.LightClientBootstrap, error
 }
 
 // find the period corresponding to the client state's latest height (execution block number).
-func (pr *Prover) findLCPeriodByHeight(height ibcexported.Height, latestPeriod uint64) (uint64, error) {
+func (pr *Prover) findLCPeriodByHeight(height uint64, latestPeriod uint64) (uint64, error) {
 	var getPeriodStartingSlot = func(period uint64) uint64 {
 		var (
 			slotsPerEpoch   uint64
@@ -73,8 +72,6 @@ func (pr *Prover) findLCPeriodByHeight(height ibcexported.Height, latestPeriod u
 		return period * epochsPerPeriod * slotsPerEpoch
 	}
 
-	bn := height.GetRevisionHeight()
-
 	// NOTE: In most cases, it will match the `latestPeriod` or `latestPeriod-1`.
 	// TODO should use binary-search in combination for long period case?
 	for p := int64(latestPeriod); p >= 0; p = p - 1 {
@@ -88,11 +85,11 @@ func (pr *Prover) findLCPeriodByHeight(height ibcexported.Height, latestPeriod u
 		if err != nil {
 			return 0, err
 		}
-		if bn >= res.Data.Header.Execution.BlockNumber {
+		if height >= res.Data.Header.Execution.BlockNumber {
 			return uint64(p), nil
 		}
 	}
-	return 0, fmt.Errorf("something wong...: target_block_number=%v latest_period=%v", bn, latestPeriod)
+	return 0, fmt.Errorf("something wong...: target_block_number=%v latest_period=%v", height, latestPeriod)
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
