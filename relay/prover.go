@@ -72,11 +72,7 @@ func (pr *Prover) CreateMsgCreateClient(_ string, selfHeader core.Header, signer
 	clientState.LatestSlot = uint64(header.ConsensusUpdate.FinalizedHeader.Slot)
 	clientState.LatestExecutionBlockNumber = header.ExecutionUpdate.BlockNumber
 
-	period, err := pr.findLCPeriodByHeight(header.ExecutionUpdate.BlockNumber, pr.computeSyncCommitteePeriod(pr.computeEpoch(header.ConsensusUpdate.FinalizedHeader.Slot)))
-	if err != nil {
-		return nil, err
-	}
-	res, err := pr.beaconClient.GetLightClientUpdate(period)
+	res, err := pr.beaconClient.GetLightClientUpdate(pr.computeSyncCommitteePeriod(pr.computeEpoch(header.ConsensusUpdate.FinalizedHeader.Slot)))
 	if err != nil {
 		return nil, err
 	}
@@ -113,7 +109,7 @@ func (pr *Prover) CreateMsgCreateClient(_ string, selfHeader core.Header, signer
 // The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 // if the header slice's length == 0 and err == nil, the relayer should skips the update-client
 func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
-	finalizedHeader := latestFinalizedHeader.(*lctypes.Header)
+	lfh := latestFinalizedHeader.(*lctypes.Header)
 
 	latestHeight, err := counterparty.LatestHeight()
 	if err != nil {
@@ -130,23 +126,21 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		return nil, err
 	}
 
-	if cs.GetLatestHeight().GetRevisionHeight() == finalizedHeader.ExecutionUpdate.BlockNumber {
+	if cs.GetLatestHeight().GetRevisionHeight() == lfh.ExecutionUpdate.BlockNumber {
 		return nil, nil
-	} else if cs.GetLatestHeight().GetRevisionHeight() > finalizedHeader.ExecutionUpdate.BlockNumber {
-		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", finalizedHeader.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
+	} else if cs.GetLatestHeight().GetRevisionHeight() > lfh.ExecutionUpdate.BlockNumber {
+		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", lfh.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
 	}
 
-	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(finalizedHeader.ConsensusUpdate.FinalizedHeader.Slot))
-	statePeriod, err := pr.findLCPeriodByHeight(cs.GetLatestHeight().GetRevisionHeight(), latestPeriod)
+	statePeriod, err := pr.findPeriodByBlockNumber(cs.GetLatestHeight().GetRevisionHeight(), lfh.ConsensusUpdate.FinalizedHeader.Slot)
 	if err != nil {
 		return nil, err
 	}
+	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(lfh.ConsensusUpdate.FinalizedHeader.Slot))
 
 	log.Printf("try to setup headers for updating the light-client: lc_latest_height=%v lc_latest_height_period=%v latest_period=%v", cs.GetLatestHeight(), statePeriod, latestPeriod)
 
-	if statePeriod > latestPeriod {
-		return nil, fmt.Errorf("the light-client server's response is old: client_state_period=%v latest_finalized_period=%v", statePeriod, latestPeriod)
-	} else if statePeriod == latestPeriod {
+	if statePeriod == latestPeriod {
 		latestHeight := cs.GetLatestHeight().(clienttypes.Height)
 		res, err := pr.beaconClient.GetLightClientUpdate(statePeriod)
 		if err != nil {
@@ -160,12 +154,14 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		if err != nil {
 			return nil, err
 		}
-		finalizedHeader.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
+		lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
 			TrustedHeight: &latestHeight,
 			SyncCommittee: bootstrapRes.Data.CurrentSyncCommittee.ToProto(),
 			IsNext:        false,
 		}
-		return []core.Header{finalizedHeader}, nil
+		return []core.Header{lfh}, nil
+	} else if statePeriod > latestPeriod {
+		return nil, fmt.Errorf("the light-client server's response is old: client_state_period=%v latest_finalized_period=%v", statePeriod, latestPeriod)
 	}
 
 	//--------- In case statePeriod < latestPeriod ---------//
@@ -194,12 +190,12 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		trustedSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
 	}
 
-	finalizedHeader.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
+	lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
 		TrustedHeight: &trustedHeight,
 		SyncCommittee: trustedSyncCommittee,
 		IsNext:        true,
 	}
-	headers = append(headers, finalizedHeader)
+	headers = append(headers, lfh)
 	return headers, nil
 }
 
@@ -291,9 +287,9 @@ func (pr *Prover) newClientState() *lctypes.ClientState {
 
 	return &lctypes.ClientState{
 		ForkParameters:               pr.config.getForkParameters(),
-		SecondsPerSlot:               pr.config.getSecondsPerSlot(),
-		SlotsPerEpoch:                pr.config.getSlotsPerEpoch(),
-		EpochsPerSyncCommitteePeriod: pr.config.getEpochsPerSyncCommitteePeriod(),
+		SecondsPerSlot:               pr.secondsPerSlot(),
+		SlotsPerEpoch:                pr.slotsPerEpoch(),
+		EpochsPerSyncCommitteePeriod: pr.epochsPerSyncCommitteePeriod(),
 
 		MinSyncCommitteeParticipants: 1,
 

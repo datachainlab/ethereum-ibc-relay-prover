@@ -87,30 +87,6 @@ func (prc *ProverConfig) IsMainnetPreset() bool {
 	}
 }
 
-func (prc *ProverConfig) getSecondsPerSlot() uint64 {
-	if prc.IsMainnetPreset() {
-		return 12
-	} else {
-		return 6
-	}
-}
-
-func (prc *ProverConfig) getSlotsPerEpoch() uint64 {
-	if prc.IsMainnetPreset() {
-		return 32
-	} else {
-		return 8
-	}
-}
-
-func (prc *ProverConfig) getEpochsPerSyncCommitteePeriod() uint64 {
-	if prc.IsMainnetPreset() {
-		return 256
-	} else {
-		return 8
-	}
-}
-
 func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 	switch prc.Network {
 	case Mainnet:
