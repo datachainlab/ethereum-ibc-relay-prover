@@ -7,6 +7,10 @@ import (
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 )
 
+const (
+	GENESIS_SLOT = 0
+)
+
 // general
 const (
 	EXECUTION_STATE_ROOT_INDEX   = 17
@@ -62,18 +66,6 @@ func (pr *Prover) computeSyncCommitteePeriod(epoch uint64) uint64 {
 
 func (pr *Prover) computeEpoch(slot uint64) uint64 {
 	return slot / pr.slotsPerEpoch()
-}
-
-func (pr *Prover) getLightClientBootstrap() (*beacon.LightClientBootstrap, error) {
-	cps, err := pr.beaconClient.GetFinalityCheckpoints()
-	if err != nil {
-		return nil, err
-	}
-	res, err := pr.beaconClient.GetBootstrap(cps.Finalized.Root[:])
-	if err != nil {
-		return nil, err
-	}
-	return &res.Data, nil
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
@@ -133,7 +125,7 @@ func (pr *Prover) getFirstBlockRootInPeriod(period uint64, highestSlot *uint64) 
 		endSlot = *highestSlot
 	}
 	for i := pr.getPeriodBoundarySlot(period); i <= endSlot; i++ {
-		root, err := pr.beaconClient.GetBlockRoot(i)
+		root, err := pr.beaconClient.GetBlockRoot(i, false)
 		if err != nil {
 			return nil, err
 		}
@@ -142,4 +134,18 @@ func (pr *Prover) getFirstBlockRootInPeriod(period uint64, highestSlot *uint64) 
 		}
 	}
 	return nil, fmt.Errorf("getNearestBlockRoot: not found: period=%v endSlot=%v", period, endSlot)
+}
+
+func (pr *Prover) computeSlotAtTimestamp(timestamp uint64) (uint64, error) {
+	genesis, err := pr.beaconClient.GetGenesis()
+	if err != nil {
+		return 0, err
+	}
+	if timestamp < genesis.GenesisTimeSeconds {
+		return 0, fmt.Errorf("computeSlotAtTimestamp: timestamp is smaller than genesisTime: timestamp=%v genesisTime=%v", timestamp, genesis.GenesisTimeSeconds)
+	} else if (timestamp-genesis.GenesisTimeSeconds)%pr.secondsPerSlot() != 0 {
+		return 0, fmt.Errorf("computeSlotAtTimestamp: timestamp is not multiple of secondsPerSlot: timestamp=%v secondsPerSlot=%v genesisTime=%v", timestamp, pr.secondsPerSlot(), genesis.GenesisTimeSeconds)
+	}
+	slotsSinceGenesis := (timestamp - genesis.GenesisTimeSeconds) / pr.secondsPerSlot()
+	return GENESIS_SLOT + slotsSinceGenesis, nil
 }

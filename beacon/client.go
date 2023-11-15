@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"net/http"
 )
 
@@ -16,12 +17,27 @@ func NewClient(endpoint string) Client {
 	return Client{endpoint: endpoint}
 }
 
+func (Client) SupportedVersion() string {
+	return "capella"
+}
+
 func (cl Client) GetGenesis() (*Genesis, error) {
 	var res GenesisResponse
 	if err := cl.get("/eth/v1/beacon/genesis", &res); err != nil {
 		return nil, err
 	}
 	return ToGenesis(res)
+}
+
+func (cl Client) GetBlockRoot(slot uint64, allowOptimistic bool) (*BlockRootResponse, error) {
+	var res BlockRootResponse
+	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/blocks/%v/root", slot), &res); err != nil {
+		return nil, err
+	}
+	if !allowOptimistic && res.ExecutionOptimistic {
+		return nil, fmt.Errorf("optimistic execution not allowed")
+	}
+	return &res, nil
 }
 
 func (cl Client) GetFinalityCheckpoints() (*StateFinalityCheckpoints, error) {
@@ -32,14 +48,6 @@ func (cl Client) GetFinalityCheckpoints() (*StateFinalityCheckpoints, error) {
 	return ToStateFinalityCheckpoints(res)
 }
 
-func (cl Client) GetBlockRoot(slot uint64) (*BlockRootResponse, error) {
-	var res BlockRootResponse
-	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/blocks/%v/root", slot), &res); err != nil {
-		return nil, err
-	}
-	return &res, nil
-}
-
 func (cl Client) GetBootstrap(finalizedRoot []byte) (*LightClientBootstrapResponse, error) {
 	if len(finalizedRoot) != 32 {
 		return nil, fmt.Errorf("finalizedRoot length must be 32: actual=%v", finalizedRoot)
@@ -48,6 +56,9 @@ func (cl Client) GetBootstrap(finalizedRoot []byte) (*LightClientBootstrapRespon
 	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/light_client/bootstrap/0x%v", hex.EncodeToString(finalizedRoot[:])), &res); err != nil {
 		return nil, err
 	}
+	if res.Version != cl.SupportedVersion() {
+		return nil, fmt.Errorf("unsupported version: %v", res.Version)
+	}
 	return &res, nil
 }
 
@@ -55,6 +66,14 @@ func (cl Client) GetLightClientUpdates(period uint64, count uint64) (LightClient
 	var res LightClientUpdatesResponse
 	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/light_client/updates?start_period=%v&count=%v", period, count), &res); err != nil {
 		return nil, err
+	}
+	if len(res) != int(count) {
+		return nil, fmt.Errorf("unexpected response length: expected=%v actual=%v", count, len(res))
+	}
+	for i := range res {
+		if res[i].Version != cl.SupportedVersion() {
+			return nil, fmt.Errorf("unsupported version: %v", res[i].Version)
+		}
 	}
 	return res, nil
 }
@@ -72,11 +91,14 @@ func (cl Client) GetLightClientFinalityUpdate() (*LightClientFinalityUpdateRespo
 	if err := cl.get("/eth/v1/beacon/light_client/finality_update", &res); err != nil {
 		return nil, err
 	}
+	if res.Version != cl.SupportedVersion() {
+		return nil, fmt.Errorf("unsupported version: %v", res.Version)
+	}
 	return &res, nil
 }
 
 func (cl Client) get(path string, res any) error {
-	fmt.Println(cl.endpoint + path)
+	log.Printf("HTTP GET: %v", cl.endpoint+path)
 	r, err := http.Get(cl.endpoint + path)
 	if err != nil {
 		return err
