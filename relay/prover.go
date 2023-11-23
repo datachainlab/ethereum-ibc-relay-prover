@@ -74,19 +74,18 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 	}
 	log.Printf("initial state is %#v", initialState)
 
-	clientState := pr.newClientState()
-	clientState.GenesisValidatorsRoot = initialState.Genesis.GenesisValidatorsRoot[:]
-	clientState.GenesisTime = initialState.Genesis.GenesisTimeSeconds
-	clientState.LatestSlot = uint64(initialState.Slot)
-	clientState.LatestExecutionBlockNumber = initialState.BlockNumber
-
+	clientState := pr.buildClientState(
+		initialState.Genesis.GenesisValidatorsRoot[:],
+		initialState.Genesis.GenesisTimeSeconds,
+		initialState.Slot,
+		initialState.BlockNumber,
+	)
 	consensusState := &lctypes.ConsensusState{
 		Slot:                 initialState.Slot,
 		StorageRoot:          initialState.AccountStorageRoot[:],
 		Timestamp:            initialState.Timestamp,
 		CurrentSyncCommittee: initialState.CurrentSyncCommittee.AggregatePubkey,
 	}
-
 	return clientState, consensusState, nil
 }
 
@@ -336,19 +335,25 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 	return needsRefresh, nil
 }
 
-func (pr *Prover) newClientState() *lctypes.ClientState {
+func (pr *Prover) buildClientState(
+	genesisValidatorsRoot []byte,
+	genesisTime uint64,
+	latestSlot uint64,
+	latestExecutionBlockNumber uint64,
+) *lctypes.ClientState {
 	var commitmentsSlot [32]byte
-	ibcAddress := pr.chain.Config().IBCAddress()
 
 	return &lctypes.ClientState{
+		GenesisValidatorsRoot:        genesisValidatorsRoot,
+		MinSyncCommitteeParticipants: 1,
+		GenesisTime:                  genesisTime,
+
 		ForkParameters:               pr.config.getForkParameters(),
 		SecondsPerSlot:               pr.secondsPerSlot(),
 		SlotsPerEpoch:                pr.slotsPerEpoch(),
 		EpochsPerSyncCommitteePeriod: pr.epochsPerSyncCommitteePeriod(),
 
-		MinSyncCommitteeParticipants: 1,
-
-		IbcAddress:         ibcAddress.Bytes(),
+		IbcAddress:         pr.chain.Config().IBCAddress().Bytes(),
 		IbcCommitmentsSlot: commitmentsSlot[:],
 		TrustLevel: &lctypes.Fraction{
 			Numerator:   2,
@@ -356,6 +361,11 @@ func (pr *Prover) newClientState() *lctypes.ClientState {
 		},
 		TrustingPeriod: pr.config.GetTrustingPeriod(),
 		MaxClockDrift:  pr.config.GetMaxClockDrift(),
+
+		LatestSlot:                 latestSlot,
+		LatestExecutionBlockNumber: latestExecutionBlockNumber,
+
+		FrozenHeight: nil,
 	}
 }
 
