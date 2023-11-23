@@ -123,7 +123,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", lfh.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
 	}
 
-	statePeriod, err := pr.findPeriodByBlockNumber(cs.GetLatestHeight().GetRevisionHeight(), lfh.ConsensusUpdate.FinalizedHeader.Slot)
+	statePeriod, err := pr.getPeriodWithBlockNumber(cs.GetLatestHeight().GetRevisionHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 		return nil, fmt.Errorf("ethereum timestamp must be truncated to seconds: timestamp=%v truncated_timestamp=%v", timestamp, truncatedTm)
 	}
 
-	slot, err := pr.computeSlotAtTimestamp(uint64(timestamp.Unix()))
+	slot, err := pr.getSlotAtTimestamp(uint64(timestamp.Unix()))
 	if err != nil {
 		return nil, fmt.Errorf("failed to compute slot at timestamp: %v", err)
 	}
