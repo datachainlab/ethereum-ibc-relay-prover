@@ -15,7 +15,6 @@ import (
 // Beacon Types
 
 type H256 = [32]byte
-type BeaconBlock = ethpb.BeaconBlockCapella
 type BeaconBlockHeader = ethpb.BeaconBlockHeader
 type ExecutionPayloadHeader = enginev1.ExecutionPayloadHeaderCapella
 

@@ -7,6 +7,10 @@ import (
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 )
 
+const (
+	GENESIS_SLOT = 0
+)
+
 // general
 const (
 	EXECUTION_STATE_ROOT_INDEX   = 17
@@ -64,16 +68,31 @@ func (pr *Prover) computeEpoch(slot uint64) uint64 {
 	return slot / pr.slotsPerEpoch()
 }
 
-func (pr *Prover) getLightClientBootstrap() (*beacon.LightClientBootstrap, error) {
-	cps, err := pr.beaconClient.GetFinalityCheckpoints()
+func (pr *Prover) getSlotAtTimestamp(timestamp uint64) (uint64, error) {
+	genesis, err := pr.beaconClient.GetGenesis()
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	res, err := pr.beaconClient.GetBootstrap(cps.Finalized.Root[:])
+	if timestamp < genesis.GenesisTimeSeconds {
+		return 0, fmt.Errorf("computeSlotAtTimestamp: timestamp is smaller than genesisTime: timestamp=%v genesisTime=%v", timestamp, genesis.GenesisTimeSeconds)
+	} else if (timestamp-genesis.GenesisTimeSeconds)%pr.secondsPerSlot() != 0 {
+		return 0, fmt.Errorf("computeSlotAtTimestamp: timestamp is not multiple of secondsPerSlot: timestamp=%v secondsPerSlot=%v genesisTime=%v", timestamp, pr.secondsPerSlot(), genesis.GenesisTimeSeconds)
+	}
+	slotsSinceGenesis := (timestamp - genesis.GenesisTimeSeconds) / pr.secondsPerSlot()
+	return GENESIS_SLOT + slotsSinceGenesis, nil
+}
+
+// returns a period corresponding to a given execution block number
+func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
+	timestamp, err := pr.chain.Timestamp(pr.newHeight(int64(blockNumber)))
 	if err != nil {
-		return nil, err
+		return 0, err
 	}
-	return &res.Data, nil
+	slot, err := pr.getSlotAtTimestamp(uint64(timestamp.Unix()))
+	if err != nil {
+		return 0, err
+	}
+	return pr.computeSyncCommitteePeriod(pr.computeEpoch(slot)), nil
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
@@ -91,55 +110,4 @@ func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadH
 		BlockNumber:       executionHeader.BlockNumber,
 		BlockNumberBranch: blockNumberBranch,
 	}, nil
-}
-
-// find a period corresponding to a given execution block number
-// CONTRACT: a returned period must be smaller than or equal to the period of `highestSlot`
-func (pr *Prover) findPeriodByBlockNumber(bn uint64, highestSlot uint64) (uint64, error) {
-	// NOTE: In most cases, it will match the `highestPeriod` or `highestPeriod-1`.
-	// TODO should use binary-search in combination for long periods case?
-	highestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(highestSlot))
-	for p := int64(highestPeriod); p >= 0; p = p - 1 {
-		var (
-			root []byte
-			err  error
-		)
-		if p == int64(highestPeriod) {
-			root, err = pr.getFirstBlockRootInPeriod(uint64(p), &highestSlot)
-		} else {
-			root, err = pr.getFirstBlockRootInPeriod(uint64(p), nil)
-		}
-		if err != nil {
-			return 0, err
-		}
-		// NOTE: I assumed the cost of bootstrap API to get the block number was cheaper than getBlock API (at least, this is true for the relayer)
-		res, err := pr.beaconClient.GetBootstrap(root)
-		if err != nil {
-			return 0, err
-		}
-		if bn >= res.Data.Header.Execution.BlockNumber {
-			return uint64(p), nil
-		}
-	}
-	return 0, fmt.Errorf("something wong...: target_block_number=%v highest_period=%v highest_slot=%v", bn, highestPeriod, highestSlot)
-}
-
-// get the root of first block the period
-func (pr *Prover) getFirstBlockRootInPeriod(period uint64, highestSlot *uint64) ([]byte, error) {
-	var endSlot uint64
-	if highestSlot == nil {
-		endSlot = pr.getPeriodBoundarySlot(period+1) - 1
-	} else {
-		endSlot = *highestSlot
-	}
-	for i := pr.getPeriodBoundarySlot(period); i <= endSlot; i++ {
-		root, err := pr.beaconClient.GetBlockRoot(i)
-		if err != nil {
-			return nil, err
-		}
-		if root.Data.Root != nil {
-			return root.Data.Root, nil
-		}
-	}
-	return nil, fmt.Errorf("getNearestBlockRoot: not found: period=%v endSlot=%v", period, endSlot)
 }

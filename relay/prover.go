@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
-	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/client"
@@ -53,63 +52,54 @@ func (pr *Prover) SetupForRelay(ctx context.Context) error {
 
 //--------- LightClient implementation ---------//
 
-var _ core.LightClient = (*Prover)(nil)
+type InitialState struct {
+	Genesis              beacon.Genesis
+	Slot                 uint64
+	BlockNumber          uint64
+	AccountStorageRoot   [32]byte
+	Timestamp            time.Time
+	CurrentSyncCommittee lctypes.SyncCommittee
+}
 
-// CreateMsgCreateClient creates a MsgCreateClient for the counterparty chain
-func (pr *Prover) CreateMsgCreateClient(_ string, selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
-	header, ok := selfHeader.(*lctypes.Header)
-	if !ok {
-		return nil, fmt.Errorf("unexpected header type: %T", selfHeader)
+// CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
+// These states will be submitted to the counterparty chain as MsgCreateClient.
+// If `height` is nil, the latest finalized height is selected automatically.
+func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
+	if height == nil {
+		height = pr.newHeight(0)
 	}
+	initialState, err := pr.buildInitialState(height.GetRevisionHeight())
+	if err != nil {
+		return nil, nil, err
+	}
+	log.Printf("initial state is %#v", initialState)
 
-	genesis, err := pr.beaconClient.GetGenesis()
-	if err != nil {
-		return nil, err
-	}
-	clientState := pr.newClientState()
-	clientState.GenesisValidatorsRoot = genesis.GenesisValidatorsRoot[:]
-	clientState.GenesisTime = genesis.GenesisTimeSeconds
-	clientState.LatestSlot = uint64(header.ConsensusUpdate.FinalizedHeader.Slot)
-	clientState.LatestExecutionBlockNumber = header.ExecutionUpdate.BlockNumber
-
-	res, err := pr.beaconClient.GetLightClientUpdate(pr.computeSyncCommitteePeriod(pr.computeEpoch(header.ConsensusUpdate.FinalizedHeader.Slot)))
-	if err != nil {
-		return nil, err
-	}
-	root, err := res.Data.FinalizedHeader.Beacon.HashTreeRoot()
-	if err != nil {
-		return nil, err
-	}
-	bootstrapRes, err := pr.beaconClient.GetBootstrap(root[:])
-	if err != nil {
-		return nil, err
-	}
-	var currentSyncCommitteePubKey []byte
-	if header.TrustedSyncCommittee != nil && !bytes.Equal(bootstrapRes.Data.CurrentSyncCommittee.AggregatePubKey, header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey) {
-		return nil, fmt.Errorf("the trusted sync committee is not matched: trusted=%X current=%X", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey, bootstrapRes.Data.CurrentSyncCommittee.AggregatePubKey)
-	} else {
-		currentSyncCommitteePubKey = bootstrapRes.Data.CurrentSyncCommittee.AggregatePubKey
-	}
-	accountUpdate, err := pr.buildAccountUpdate(header.ExecutionUpdate.BlockNumber)
-	if err != nil {
-		return nil, err
-	}
-
+	clientState := pr.buildClientState(
+		initialState.Genesis.GenesisValidatorsRoot[:],
+		initialState.Genesis.GenesisTimeSeconds,
+		initialState.Slot,
+		initialState.BlockNumber,
+	)
 	consensusState := &lctypes.ConsensusState{
-		Slot:                 clientState.LatestSlot,
-		StorageRoot:          accountUpdate.AccountStorageRoot,
-		Timestamp:            time.Unix(int64(header.Timestamp), 0),
-		CurrentSyncCommittee: currentSyncCommitteePubKey,
+		Slot:                 initialState.Slot,
+		StorageRoot:          initialState.AccountStorageRoot[:],
+		Timestamp:            initialState.Timestamp,
+		CurrentSyncCommittee: initialState.CurrentSyncCommittee.AggregatePubkey,
 	}
-
-	return clienttypes.NewMsgCreateClient(clientState, consensusState, signer.String())
+	return clientState, consensusState, nil
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 // The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 // if the header slice's length == 0 and err == nil, the relayer should skips the update-client
 func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
-	lfh := latestFinalizedHeader.(*lctypes.Header)
+	lfh, ok := latestFinalizedHeader.(*lctypes.Header)
+	if !ok {
+		return nil, fmt.Errorf("unexpected header type: %T", latestFinalizedHeader)
+	}
+	if err := lfh.ValidateBasic(); err != nil {
+		return nil, err
+	}
 
 	latestHeight, err := counterparty.LatestHeight()
 	if err != nil {
@@ -132,7 +122,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", lfh.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
 	}
 
-	statePeriod, err := pr.findPeriodByBlockNumber(cs.GetLatestHeight().GetRevisionHeight(), lfh.ConsensusUpdate.FinalizedHeader.Slot)
+	statePeriod, err := pr.getPeriodWithBlockNumber(cs.GetLatestHeight().GetRevisionHeight())
 	if err != nil {
 		return nil, err
 	}
@@ -199,7 +189,71 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	return headers, nil
 }
 
-// GetLatestFinalizedHeader returns the latest finalized header on this chain
+func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
+	res, err := pr.beaconClient.GetLightClientFinalityUpdate()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get light-client finality update: %v", err)
+	}
+	if eh := &res.Data.FinalizedHeader.Execution; blockNumber == 0 {
+		blockNumber = eh.BlockNumber
+	} else if eh.BlockNumber < blockNumber {
+		return nil, fmt.Errorf("the height is not finalized yet: blockNumber=%v finalized_block_number=%v", blockNumber, eh.BlockNumber)
+	}
+
+	timestamp, err := pr.chain.Timestamp(pr.newHeight(int64(blockNumber)))
+	if err != nil {
+		return nil, fmt.Errorf("failed to get timestamp: %v", err)
+	}
+	if truncatedTm := timestamp.Truncate(time.Second); truncatedTm != timestamp {
+		return nil, fmt.Errorf("ethereum timestamp must be truncated to seconds: timestamp=%v truncated_timestamp=%v", timestamp, truncatedTm)
+	}
+
+	slot, err := pr.getSlotAtTimestamp(uint64(timestamp.Unix()))
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute slot at timestamp: %v", err)
+	}
+
+	var currentSyncCommittee *lctypes.SyncCommittee
+	if period := pr.computeSyncCommitteePeriod(pr.computeEpoch(slot)); period == 0 {
+		// if period == 0, get the current sync committee from the bootstrap data corresponding to block at slot 1
+		res2, err := pr.beaconClient.GetBlockRoot(1, false)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get block root: %v", err)
+		}
+		bootstrap, err := pr.beaconClient.GetBootstrap(res2.Data.Root[:])
+		if err != nil {
+			return nil, fmt.Errorf("failed to get bootstrap: %v", err)
+		}
+		currentSyncCommittee = bootstrap.Data.CurrentSyncCommittee.ToProto()
+	} else {
+		// otherwise, get the current sync committee from the light-client update
+		update, err := pr.beaconClient.GetLightClientUpdate(period - 1)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get light-client update: %v", err)
+		}
+		currentSyncCommittee = update.Data.NextSyncCommittee.ToProto()
+	}
+	accountUpdate, err := pr.buildAccountUpdate(blockNumber)
+	if err != nil {
+		return nil, fmt.Errorf("failed to build account update: %v", err)
+	}
+	var accountStorageRoot [32]byte
+	copy(accountStorageRoot[:], accountUpdate.AccountStorageRoot)
+	genesis, err := pr.beaconClient.GetGenesis()
+	if err != nil {
+		return nil, err
+	}
+	return &InitialState{
+		Genesis:              *genesis,
+		Slot:                 slot,
+		BlockNumber:          blockNumber,
+		AccountStorageRoot:   accountStorageRoot,
+		Timestamp:            timestamp,
+		CurrentSyncCommittee: *currentSyncCommittee,
+	}, nil
+}
+
+// buildLatestFinalizedHeader returns the latest finalized header on this chain
 // The returned header is expected to be the latest one of headers that can be verified by the light client
 func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 	res, err := pr.beaconClient.GetLightClientFinalityUpdate()
@@ -281,19 +335,25 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 	return needsRefresh, nil
 }
 
-func (pr *Prover) newClientState() *lctypes.ClientState {
+func (pr *Prover) buildClientState(
+	genesisValidatorsRoot []byte,
+	genesisTime uint64,
+	latestSlot uint64,
+	latestExecutionBlockNumber uint64,
+) *lctypes.ClientState {
 	var commitmentsSlot [32]byte
-	ibcAddress := pr.chain.Config().IBCAddress()
 
 	return &lctypes.ClientState{
+		GenesisValidatorsRoot:        genesisValidatorsRoot,
+		MinSyncCommitteeParticipants: 1,
+		GenesisTime:                  genesisTime,
+
 		ForkParameters:               pr.config.getForkParameters(),
 		SecondsPerSlot:               pr.secondsPerSlot(),
 		SlotsPerEpoch:                pr.slotsPerEpoch(),
 		EpochsPerSyncCommitteePeriod: pr.epochsPerSyncCommitteePeriod(),
 
-		MinSyncCommitteeParticipants: 1,
-
-		IbcAddress:         ibcAddress.Bytes(),
+		IbcAddress:         pr.chain.Config().IBCAddress().Bytes(),
 		IbcCommitmentsSlot: commitmentsSlot[:],
 		TrustLevel: &lctypes.Fraction{
 			Numerator:   2,
@@ -301,6 +361,11 @@ func (pr *Prover) newClientState() *lctypes.ClientState {
 		},
 		TrustingPeriod: pr.config.GetTrustingPeriod(),
 		MaxClockDrift:  pr.config.GetMaxClockDrift(),
+
+		LatestSlot:                 latestSlot,
+		LatestExecutionBlockNumber: latestExecutionBlockNumber,
+
+		FrozenHeight: nil,
 	}
 }
 
@@ -356,8 +421,8 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 		return nil, err
 	}
 	lcUpdate := res.Data.ToProto()
-	executionHeader := res.Data.FinalizedHeader.Execution
-	executionUpdate, err := pr.buildExecutionUpdate(&executionHeader)
+	executionHeader := &res.Data.FinalizedHeader.Execution
+	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
 	if err != nil {
 		return nil, err
 	}
