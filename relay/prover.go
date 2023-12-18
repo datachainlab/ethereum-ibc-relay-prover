@@ -4,10 +4,10 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
+	sdk "github.com/cosmos/cosmos-sdk/types"
 	clienttypes "github.com/cosmos/ibc-go/v7/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v7/modules/core/exported"
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/client"
@@ -15,6 +15,7 @@ import (
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 type Prover struct {
@@ -64,15 +65,12 @@ type InitialState struct {
 // CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
 // These states will be submitted to the counterparty chain as MsgCreateClient.
 // If `height` is nil, the latest finalized height is selected automatically.
-func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
-	if height == nil {
-		height = pr.newHeight(0)
-	}
-	initialState, err := pr.buildInitialState(height.GetRevisionHeight())
+func (pr *Prover) CreateMsgCreateClient(_ string, selfHeader core.Header, signer sdk.AccAddress) (*clienttypes.MsgCreateClient, error) {
+	initialState, err := pr.buildInitialState(selfHeader.GetHeight().GetRevisionHeight())
 	if err != nil {
-		return nil, nil, err
+		return nil, err
 	}
-	log.Printf("initial state is %#v", initialState)
+	log.GetLogger().Debug("InitialState", "initial_state", initialState)
 
 	clientState := pr.buildClientState(
 		initialState.Genesis.GenesisValidatorsRoot[:],
@@ -86,7 +84,7 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 		Timestamp:            initialState.Timestamp,
 		CurrentSyncCommittee: initialState.CurrentSyncCommittee.AggregatePubkey,
 	}
-	return clientState, consensusState, nil
+	return clienttypes.NewMsgCreateClient(clientState, consensusState, signer.String())
 }
 
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
@@ -128,7 +126,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	}
 	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(lfh.ConsensusUpdate.FinalizedHeader.Slot))
 
-	log.Printf("try to setup headers for updating the light-client: lc_latest_height=%v lc_latest_height_period=%v latest_period=%v", cs.GetLatestHeight(), statePeriod, latestPeriod)
+	log.GetLogger().Debug("try to setup headers for updating the light-client", "lc_latest_height", cs.GetLatestHeight(), "lc_latest_height_period", statePeriod, "latest_period", latestPeriod)
 
 	if statePeriod == latestPeriod {
 		latestHeight := cs.GetLatestHeight().(clienttypes.Height)
@@ -175,9 +173,19 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 				return nil, err
 			}
 		}
-		headers = append(headers, header)
+		log.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
+
+		if header.TrustedSyncCommittee.IsNext {
+			if trustedSyncCommittee == nil {
+				return nil, fmt.Errorf("trusted sync committee must be set if `IsNext` is true: period=%v", p)
+			}
+			if !bytes.Equal(header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey, trustedSyncCommittee.AggregatePubkey) {
+				return nil, fmt.Errorf("next sync committee is mismatch: trusted=0x%x next=0x%x", trustedSyncCommittee.AggregatePubkey, header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey)
+			}
+		}
 		trustedHeight = clienttypes.NewHeight(0, header.ExecutionUpdate.BlockNumber)
 		trustedSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
+		headers = append(headers, header)
 	}
 
 	lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
