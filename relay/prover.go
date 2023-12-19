@@ -168,21 +168,15 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 				return nil, err
 			}
 		} else {
-			header, err = pr.buildNextSyncCommitteeUpdateForNext(p, trustedHeight)
+			if trustedSyncCommittee == nil {
+				return nil, fmt.Errorf("trusted sync committee must not be nil: period=%v", p)
+			}
+			header, err = pr.buildNextSyncCommitteeUpdateForNext(p, trustedHeight, trustedSyncCommittee)
 			if err != nil {
 				return nil, err
 			}
 		}
 		log.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
-
-		if header.TrustedSyncCommittee.IsNext {
-			if trustedSyncCommittee == nil {
-				return nil, fmt.Errorf("trusted sync committee must be set if `IsNext` is true: period=%v", p)
-			}
-			if !bytes.Equal(header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey, trustedSyncCommittee.AggregatePubkey) {
-				return nil, fmt.Errorf("next sync committee is mismatch: trusted=0x%x next=0x%x", trustedSyncCommittee.AggregatePubkey, header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey)
-			}
-		}
 		trustedHeight = clienttypes.NewHeight(0, header.ExecutionUpdate.BlockNumber)
 		trustedSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
 		headers = append(headers, header)
@@ -423,7 +417,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForCurrent(period uint64, trustedH
 	}, nil
 }
 
-func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeight clienttypes.Height) (*lctypes.Header, error) {
+func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeight clienttypes.Height, trustedSyncCommittee *lctypes.SyncCommittee) (*lctypes.Header, error) {
 	res, err := pr.beaconClient.GetLightClientUpdate(period)
 	if err != nil {
 		return nil, err
@@ -449,7 +443,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 	return &lctypes.Header{
 		TrustedSyncCommittee: &lctypes.TrustedSyncCommittee{
 			TrustedHeight: &trustedHeight,
-			SyncCommittee: lcUpdate.NextSyncCommittee,
+			SyncCommittee: trustedSyncCommittee,
 			IsNext:        true,
 		},
 		ConsensusUpdate: lcUpdate,
