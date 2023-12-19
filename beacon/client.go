@@ -5,8 +5,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"net/http"
+
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 type Client struct {
@@ -98,7 +99,7 @@ func (cl Client) GetLightClientFinalityUpdate() (*LightClientFinalityUpdateRespo
 }
 
 func (cl Client) get(path string, res any) error {
-	log.Printf("HTTP GET: %v", cl.endpoint+path)
+	log.GetLogger().Debug("Beacon API request", "endpoint", cl.endpoint+path)
 	r, err := http.Get(cl.endpoint + path)
 	if err != nil {
 		return err

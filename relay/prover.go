@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/cosmos/cosmos-sdk/codec"
@@ -15,6 +14,7 @@ import (
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/log"
 )
 
 type Prover struct {
@@ -72,7 +72,7 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 	if err != nil {
 		return nil, nil, err
 	}
-	log.Printf("initial state is %#v", initialState)
+	log.GetLogger().Debug("InitialState", "initial_state", initialState)
 
 	clientState := pr.buildClientState(
 		initialState.Genesis.GenesisValidatorsRoot[:],
@@ -128,7 +128,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	}
 	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(lfh.ConsensusUpdate.FinalizedHeader.Slot))
 
-	log.Printf("try to setup headers for updating the light-client: lc_latest_height=%v lc_latest_height_period=%v latest_period=%v", cs.GetLatestHeight(), statePeriod, latestPeriod)
+	log.GetLogger().Debug("try to setup headers for updating the light-client", "lc_latest_height", cs.GetLatestHeight(), "lc_latest_height_period", statePeriod, "latest_period", latestPeriod)
 
 	if statePeriod == latestPeriod {
 		latestHeight := cs.GetLatestHeight().(clienttypes.Height)
@@ -170,14 +170,18 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 				return nil, err
 			}
 		} else {
-			header, err = pr.buildNextSyncCommitteeUpdateForNext(p, trustedHeight)
+			if trustedSyncCommittee == nil {
+				return nil, fmt.Errorf("trusted sync committee must not be nil: period=%v", p)
+			}
+			header, err = pr.buildNextSyncCommitteeUpdateForNext(p, trustedHeight, trustedSyncCommittee)
 			if err != nil {
 				return nil, err
 			}
 		}
-		headers = append(headers, header)
+		log.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
 		trustedHeight = clienttypes.NewHeight(0, header.ExecutionUpdate.BlockNumber)
 		trustedSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
+		headers = append(headers, header)
 	}
 
 	lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
@@ -415,7 +419,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForCurrent(period uint64, trustedH
 	}, nil
 }
 
-func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeight clienttypes.Height) (*lctypes.Header, error) {
+func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeight clienttypes.Height, trustedSyncCommittee *lctypes.SyncCommittee) (*lctypes.Header, error) {
 	res, err := pr.beaconClient.GetLightClientUpdate(period)
 	if err != nil {
 		return nil, err
@@ -441,7 +445,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 	return &lctypes.Header{
 		TrustedSyncCommittee: &lctypes.TrustedSyncCommittee{
 			TrustedHeight: &trustedHeight,
-			SyncCommittee: lcUpdate.NextSyncCommittee,
+			SyncCommittee: trustedSyncCommittee,
 			IsNext:        true,
 		},
 		ConsensusUpdate: lcUpdate,
