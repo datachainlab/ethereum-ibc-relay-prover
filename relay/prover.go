@@ -378,7 +378,8 @@ func (pr *Prover) getBootstrapInPeriod0() (*lctypes.SyncCommittee, error) {
 	for i := startSlot + slotsPerEpoch; i <= lastSlotInPeriod; i += slotsPerEpoch {
 		res, err := pr.beaconClient.GetBlockRoot(i, false)
 		if err != nil {
-			return nil, fmt.Errorf("there is no available bootstrap in period: period=0 err=%v", err)
+			errs = append(errs, err)
+			return nil, fmt.Errorf("there is no available bootstrap in period: period=0 err=%v", errors.Join(errs...))
 		}
 		bootstrap, err := pr.beaconClient.GetBootstrap(res.Data.Root[:])
 		if err != nil {
