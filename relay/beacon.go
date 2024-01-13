@@ -97,11 +97,11 @@ func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
-	stateRootBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_STATE_ROOT_GENERALIZED_INDEX)
+	stateRootBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_STATE_ROOT_GENERALIZED_INDEX)
 	if err != nil {
 		return nil, err
 	}
-	blockNumberBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_BLOCK_NUMBER_GENERALIZED_INDEX)
+	blockNumberBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_BLOCK_NUMBER_GENERALIZED_INDEX)
 	if err != nil {
 		return nil, err
 	}

@@ -5,12 +5,12 @@ import (
 	"encoding/binary"
 	"fmt"
 
+	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	fastssz "github.com/prysmaticlabs/fastssz"
 	"github.com/prysmaticlabs/prysm/v4/encoding/ssz"
-	enginev1 "github.com/prysmaticlabs/prysm/v4/proto/engine/v1"
 )
 
-func generate_merkle_proof(leaves [][]byte, generalizedIndex int) ([][]byte, error) {
+func generateMerkleProof(leaves [][]byte, generalizedIndex int) ([][]byte, error) {
 	if len(leaves) == 0 {
 		return nil, fmt.Errorf("leaves length must be greater than 0")
 	}
@@ -31,26 +31,26 @@ func generate_merkle_proof(leaves [][]byte, generalizedIndex int) ([][]byte, err
 	return proof.Hashes, nil
 }
 
-func generate_execution_payload_proof(header *enginev1.ExecutionPayloadHeaderDeneb, generalizedIndex int) ([][]byte, error) {
+func generateExecutionPayloadHeaderProof(header *beacon.ExecutionPayloadHeader, generalizedIndex int) ([][]byte, error) {
 	var zero [32]byte
 	leaves := [32][]byte{
 		header.ParentHash,
-		ssz_bytes(header.FeeRecipient),
+		sszBytes(header.FeeRecipient),
 		header.StateRoot,
 		header.ReceiptsRoot,
-		ssz_bytes(header.LogsBloom),
+		sszBytes(header.LogsBloom),
 		header.PrevRandao,
-		ssz_uint64(header.BlockNumber),
-		ssz_uint64(header.GasLimit),
-		ssz_uint64(header.GasUsed),
-		ssz_uint64(header.Timestamp),
+		sszUint64(header.BlockNumber),
+		sszUint64(header.GasLimit),
+		sszUint64(header.GasUsed),
+		sszUint64(header.Timestamp),
 		extraDataRootBytes(header.ExtraData),
 		header.BaseFeePerGas,
 		header.BlockHash,
 		header.TransactionsRoot,
 		header.WithdrawalsRoot,
-		ssz_uint64(header.BlobGasUsed),
-		ssz_uint64(header.ExcessBlobGas),
+		sszUint64(header.BlobGasUsed),
+		sszUint64(header.ExcessBlobGas),
 		zero[:],
 		zero[:],
 		zero[:],
@@ -67,10 +67,10 @@ func generate_execution_payload_proof(header *enginev1.ExecutionPayloadHeaderDen
 		zero[:],
 		zero[:],
 	}
-	return generate_merkle_proof(leaves[:], generalizedIndex)
+	return generateMerkleProof(leaves[:], generalizedIndex)
 }
 
-func ssz_bytes(bz []byte) []byte {
+func sszBytes(bz []byte) []byte {
 	hh := fastssz.NewHasher()
 	hh.PutBytes(bz)
 	root, err := hh.HashRoot()
@@ -80,7 +80,7 @@ func ssz_bytes(bz []byte) []byte {
 	return root[:]
 }
 
-func ssz_uint64(v uint64) []byte {
+func sszUint64(v uint64) []byte {
 	hh := fastssz.NewHasher()
 	hh.PutUint64(v)
 	root, err := hh.HashRoot()
