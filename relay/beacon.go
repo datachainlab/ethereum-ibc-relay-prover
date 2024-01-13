@@ -11,11 +11,10 @@ const (
 	GENESIS_SLOT = 0
 )
 
-// general
+// merkle tree's leaf index
 const (
-	EXECUTION_LEAF_START_GENERALIZED_INDEX   = 2*2*2*2*2 - 1 // 31
-	EXECUTION_STATE_ROOT_GENERALIZED_INDEX   = EXECUTION_LEAF_START_GENERALIZED_INDEX + 2
-	EXECUTION_BLOCK_NUMBER_GENERALIZED_INDEX = EXECUTION_LEAF_START_GENERALIZED_INDEX + 6
+	EXECUTION_STATE_ROOT_LEAF_INDEX   = 2
+	EXECUTION_BLOCK_NUMBER_LEAF_INDEX = 6
 )
 
 // minimal preset
@@ -97,11 +96,11 @@ func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
-	stateRootBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_STATE_ROOT_GENERALIZED_INDEX)
+	stateRootBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_STATE_ROOT_LEAF_INDEX)
 	if err != nil {
 		return nil, err
 	}
-	blockNumberBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_BLOCK_NUMBER_GENERALIZED_INDEX)
+	blockNumberBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_BLOCK_NUMBER_LEAF_INDEX)
 	if err != nil {
 		return nil, err
 	}

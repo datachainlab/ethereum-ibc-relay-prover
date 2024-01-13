@@ -10,13 +10,19 @@ import (
 	"github.com/prysmaticlabs/prysm/v4/encoding/ssz"
 )
 
-func generateMerkleProof(leaves [][]byte, generalizedIndex int) ([][]byte, error) {
-	if len(leaves) == 0 {
+func generateMerkleProof(leaves [][]byte, leafIndex uint64) ([][]byte, error) {
+	leafLen := len(leaves)
+	if leafLen == 0 {
 		return nil, fmt.Errorf("leaves length must be greater than 0")
 	}
-	// check if leaves is a power of 2
-	if len(leaves)&(len(leaves)-1) != 0 {
-		return nil, fmt.Errorf("leaves length must be a power of 2: actual=%v", len(leaves))
+	// leaves length must be power of 2
+	var nearestPowerOf2 int = 1
+	for nearestPowerOf2 < leafLen {
+		nearestPowerOf2 *= 2
+	}
+	var zero [32]byte
+	for i := leafLen; i < nearestPowerOf2; i++ {
+		leaves = append(leaves, zero[:])
 	}
 	node, err := fastssz.TreeFromChunks(leaves)
 	if err != nil {
@@ -24,16 +30,15 @@ func generateMerkleProof(leaves [][]byte, generalizedIndex int) ([][]byte, error
 	}
 	// NOTE: seems that fastssz sets root as index=1, so the index is off by one from the ethereum consensus-spes
 	// https://github.com/ethereum/consensus-specs/blob/c46c3945fd7fbd1226ece1f8d684c4b724b7bdab/ssz/merkle-proofs.md#generalized-merkle-tree-index
-	proof, err := node.Prove(generalizedIndex + 1)
+	proof, err := node.Prove(nearestPowerOf2 + int(leafIndex))
 	if err != nil {
 		return nil, err
 	}
 	return proof.Hashes, nil
 }
 
-func generateExecutionPayloadHeaderProof(header *beacon.ExecutionPayloadHeader, generalizedIndex int) ([][]byte, error) {
-	var zero [32]byte
-	leaves := [32][]byte{
+func generateExecutionPayloadHeaderProof(header *beacon.ExecutionPayloadHeader, leafIndex uint64) ([][]byte, error) {
+	return generateMerkleProof([][]byte{
 		header.ParentHash,
 		sszBytes(header.FeeRecipient),
 		header.StateRoot,
@@ -51,23 +56,7 @@ func generateExecutionPayloadHeaderProof(header *beacon.ExecutionPayloadHeader, 
 		header.WithdrawalsRoot,
 		sszUint64(header.BlobGasUsed),
 		sszUint64(header.ExcessBlobGas),
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-		zero[:],
-	}
-	return generateMerkleProof(leaves[:], generalizedIndex)
+	}, leafIndex)
 }
 
 func sszBytes(bz []byte) []byte {
