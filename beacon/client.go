@@ -19,7 +19,7 @@ func NewClient(endpoint string) Client {
 }
 
 func (Client) SupportedVersion() string {
-	return "capella"
+	return "deneb"
 }
 
 func (cl Client) GetGenesis() (*Genesis, error) {

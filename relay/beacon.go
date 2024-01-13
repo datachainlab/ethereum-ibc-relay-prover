@@ -13,8 +13,9 @@ const (
 
 // general
 const (
-	EXECUTION_STATE_ROOT_INDEX   = 17
-	EXECUTION_BLOCK_NUMBER_INDEX = 21
+	EXECUTION_LEAF_START_GENERALIZED_INDEX   = 2*2*2*2*2 - 1 // 31
+	EXECUTION_STATE_ROOT_GENERALIZED_INDEX   = EXECUTION_LEAF_START_GENERALIZED_INDEX + 2
+	EXECUTION_BLOCK_NUMBER_GENERALIZED_INDEX = EXECUTION_LEAF_START_GENERALIZED_INDEX + 6
 )
 
 // minimal preset
@@ -96,11 +97,11 @@ func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
-	stateRootBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_STATE_ROOT_INDEX)
+	stateRootBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_STATE_ROOT_GENERALIZED_INDEX)
 	if err != nil {
 		return nil, err
 	}
-	blockNumberBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_BLOCK_NUMBER_INDEX)
+	blockNumberBranch, err := generate_execution_payload_proof(executionHeader, EXECUTION_BLOCK_NUMBER_GENERALIZED_INDEX)
 	if err != nil {
 		return nil, err
 	}

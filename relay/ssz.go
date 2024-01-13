@@ -3,6 +3,7 @@ package relay
 import (
 	"bytes"
 	"encoding/binary"
+	"fmt"
 
 	fastssz "github.com/prysmaticlabs/fastssz"
 	"github.com/prysmaticlabs/prysm/v4/encoding/ssz"
@@ -10,6 +11,13 @@ import (
 )
 
 func generate_merkle_proof(leaves [][]byte, generalizedIndex int) ([][]byte, error) {
+	if len(leaves) == 0 {
+		return nil, fmt.Errorf("leaves length must be greater than 0")
+	}
+	// check if leaves is a power of 2
+	if len(leaves)&(len(leaves)-1) != 0 {
+		return nil, fmt.Errorf("leaves length must be a power of 2: actual=%v", len(leaves))
+	}
 	node, err := fastssz.TreeFromChunks(leaves)
 	if err != nil {
 		return nil, err
@@ -23,9 +31,9 @@ func generate_merkle_proof(leaves [][]byte, generalizedIndex int) ([][]byte, err
 	return proof.Hashes, nil
 }
 
-func generate_execution_payload_proof(header *enginev1.ExecutionPayloadHeaderCapella, generalizedIndex int) ([][]byte, error) {
+func generate_execution_payload_proof(header *enginev1.ExecutionPayloadHeaderDeneb, generalizedIndex int) ([][]byte, error) {
 	var zero [32]byte
-	return generate_merkle_proof([][]byte{
+	leaves := [32][]byte{
 		header.ParentHash,
 		ssz_bytes(header.FeeRecipient),
 		header.StateRoot,
@@ -41,8 +49,25 @@ func generate_execution_payload_proof(header *enginev1.ExecutionPayloadHeaderCap
 		header.BlockHash,
 		header.TransactionsRoot,
 		header.WithdrawalsRoot,
+		ssz_uint64(header.BlobGasUsed),
+		ssz_uint64(header.ExcessBlobGas),
 		zero[:],
-	}, generalizedIndex)
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+		zero[:],
+	}
+	return generate_merkle_proof(leaves[:], generalizedIndex)
 }
 
 func ssz_bytes(bz []byte) []byte {

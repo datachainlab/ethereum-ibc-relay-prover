@@ -35,9 +35,9 @@ type LightClientHeader struct {
 
 func (h *LightClientHeader) UnmarshalJSON(bz []byte) error {
 	type LightClientHeaderJSON struct {
-		Beacon          types.BeaconBlockHeader               `json:"beacon"`
-		Execution       builder.ExecutionPayloadHeaderCapella `json:"execution"`
-		ExecutionBranch []hexutil.Bytes                       `json:"execution_branch"`
+		Beacon          types.BeaconBlockHeader             `json:"beacon"`
+		Execution       builder.ExecutionPayloadHeaderDeneb `json:"execution"`
+		ExecutionBranch []hexutil.Bytes                     `json:"execution_branch"`
 	}
 
 	var hj LightClientHeaderJSON
@@ -60,7 +60,7 @@ func (h *LightClientHeader) UnmarshalJSON(bz []byte) error {
 			StateRoot:     hj.Beacon.StateRoot,
 			BodyRoot:      hj.Beacon.BodyRoot,
 		},
-		Execution: enginev1.ExecutionPayloadHeaderCapella{
+		Execution: enginev1.ExecutionPayloadHeaderDeneb{
 			ParentHash:       hj.Execution.ParentHash,
 			FeeRecipient:     hj.Execution.FeeRecipient,
 			StateRoot:        hj.Execution.StateRoot,
@@ -76,6 +76,8 @@ func (h *LightClientHeader) UnmarshalJSON(bz []byte) error {
 			BlockHash:        hj.Execution.BlockHash,
 			TransactionsRoot: hj.Execution.TransactionsRoot,
 			WithdrawalsRoot:  hj.Execution.WithdrawalsRoot,
+			BlobGasUsed:      uint64(hj.Execution.BlobGasUsed),
+			ExcessBlobGas:    uint64(hj.Execution.ExcessBlobGas),
 		},
 		ExecutionBranch: hj.ExecutionBranch,
 	}
