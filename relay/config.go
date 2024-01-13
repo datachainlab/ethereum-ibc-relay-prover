@@ -1,7 +1,9 @@
 package relay
 
 import (
+	"encoding/hex"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/relay/ethereum"
@@ -10,10 +12,8 @@ import (
 )
 
 const (
-	Mainnet = "mainnet"
-	Minimal = "minimal"
-	Goerli  = "goerli"
-	Sepolia = "sepolia"
+	MainnetPreset = "mainnet"
+	MinimalPreset = "minimal"
 )
 
 var _ core.ProverConfig = (*ProverConfig)(nil)
@@ -30,8 +30,11 @@ func (prc ProverConfig) Build(chain core.Chain) (core.Prover, error) {
 }
 
 func (prc ProverConfig) Validate() error {
-	if prc.Network == "" {
-		return fmt.Errorf("network is required")
+	if prc.Preset != MainnetPreset && prc.Preset != MinimalPreset {
+		return fmt.Errorf("unknown preset: %v", prc.Preset)
+	}
+	if prc.ForkParameters == nil || len(prc.ForkParameters) == 0 {
+		return fmt.Errorf("config attribute \"fork_parameters\" must not be empty")
 	}
 	if prc.BeaconEndpoint == "" {
 		return fmt.Errorf("endpoint is required")
@@ -77,91 +80,69 @@ func (prc *ProverConfig) GetMaxClockDrift() time.Duration {
 
 // NOTE the prover supports only the mainnet and minimal preset for now
 func (prc *ProverConfig) IsMainnetPreset() bool {
-	switch prc.Network {
-	case Mainnet, Goerli, Sepolia:
-		return true
-	case Minimal:
-		return false
-	default:
-		panic(fmt.Sprintf("unknown network: %v", prc.Network))
+	return prc.Preset == MainnetPreset
+}
+
+func (prc ProverConfig) validateForkParamerters() error {
+	if len(prc.ForkParameters) == 0 {
+		return fmt.Errorf("config attribute \"fork_parameters\" must not be empty")
 	}
+	// check if `ForkParameters`` are sorted by epoch in descending order
+	for i := 0; i < len(prc.ForkParameters)-1; i++ {
+		if prc.ForkParameters[i].Epoch > prc.ForkParameters[i+1].Epoch {
+			return fmt.Errorf("config attribute \"fork_parameters\" must be sorted by epoch in descending order: actual=%v", prc.ForkParameters)
+		}
+		// check if `Version` must be 4 bytes as a hex string
+		if bz, err := decodeHex(prc.ForkParameters[i].Version); err != nil {
+			return fmt.Errorf("config attribute \"fork_parameters[%v].version\" must be a hex string: actual=%v", i, prc.ForkParameters[i].Version)
+		} else if len(bz) != 4 {
+			return fmt.Errorf("config attribute \"fork_parameters[%v].version\" must be 4 bytes: actual=%v", i, prc.ForkParameters[i].Version)
+		}
+	}
+	// check if last `ForkParameters` is the genesis fork
+	if prc.ForkParameters[len(prc.ForkParameters)-1].Epoch != 0 {
+		return fmt.Errorf("genesis fork epoch must be 0: actual=%v", prc.ForkParameters[len(prc.ForkParameters)-1].Epoch)
+	}
+	return nil
 }
 
 func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
-	switch prc.Network {
-	case Mainnet:
-		return &lctypes.ForkParameters{
-			GenesisForkVersion: []byte{0, 0, 0, 0},
-			Forks: []*lctypes.Fork{
-				{
-					Version: []byte{3, 0, 0, 0},
-					Epoch:   194048,
-				},
-				{
-					Version: []byte{2, 0, 0, 0},
-					Epoch:   144896,
-				},
-				{
-					Version: []byte{1, 0, 0, 0},
-					Epoch:   74240,
-				},
-			},
-		}
-	case Minimal:
-		return &lctypes.ForkParameters{
-			GenesisForkVersion: []byte{0, 0, 0, 1},
-			Forks: []*lctypes.Fork{
-				{
-					Version: []byte{3, 0, 0, 1},
-					Epoch:   0,
-				},
-				{
-					Version: []byte{2, 0, 0, 1},
-					Epoch:   0,
-				},
-				{
-					Version: []byte{1, 0, 0, 1},
-					Epoch:   0,
-				},
-			},
-		}
-	case Goerli:
-		return &lctypes.ForkParameters{
-			GenesisForkVersion: []byte{0, 0, 16, 32},
-			Forks: []*lctypes.Fork{
-				{
-					Version: []byte{3, 0, 16, 32},
-					Epoch:   162304,
-				},
-				{
-					Version: []byte{2, 0, 16, 32},
-					Epoch:   112260,
-				},
-				{
-					Version: []byte{1, 0, 16, 32},
-					Epoch:   36660,
-				},
-			},
-		}
-	case Sepolia:
-		return &lctypes.ForkParameters{
-			GenesisForkVersion: []byte{144, 0, 0, 105},
-			Forks: []*lctypes.Fork{
-				{
-					Version: []byte{144, 0, 0, 114},
-					Epoch:   56832,
-				},
-				{
-					Version: []byte{144, 0, 0, 113},
-					Epoch:   100,
-				},
-				{
-					Version: []byte{144, 0, 0, 112},
-					Epoch:   50,
-				},
-			},
-		}
-	default:
-		panic(fmt.Sprintf("unknown network: %v", prc.Network))
+	// we assume the followings:
+	// 1. `ForkParameters` length is greater than 0
+	// 2. `ForkParameters` are sorted by epoch in descending order
+	// 3. `Version` must be 4 bytes as a hex string
+	// 4. last `ForkParameters` is the genesis fork
+
+	// last fork must be the genesis fork
+	genesisFork := prc.ForkParameters[len(prc.ForkParameters)-1]
+	if genesisFork.Epoch != 0 {
+		panic(fmt.Sprintf("genesis fork epoch must be 0: actual=%v", genesisFork.Epoch))
 	}
+	var forkParameters lctypes.ForkParameters
+	forkParameters.GenesisForkVersion = mustDecodeHex(genesisFork.Version)
+	for _, fp := range prc.ForkParameters[:len(prc.ForkParameters)-1] {
+		forkParameters.Forks = append(forkParameters.Forks, &lctypes.Fork{
+			Version: mustDecodeHex(fp.Version),
+			Epoch:   fp.Epoch,
+		})
+	}
+	return &forkParameters
+}
+
+func decodeHex(s string) ([]byte, error) {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
+	}
+	return hex.DecodeString(s)
+}
+
+func mustDecodeHex(s string) []byte {
+	if strings.HasPrefix(s, "0x") {
+		s = s[2:]
+	}
+	b, err := hex.DecodeString(s)
+	if err != nil {
+		panic(err)
+	}
+	return b
 }
