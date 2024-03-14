@@ -94,6 +94,10 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{0, 0, 0, 0},
 			Forks: []*lctypes.Fork{
 				{
+					Version: []byte{4, 0, 0, 0},
+					Epoch:   269568,
+				},
+				{
 					Version: []byte{3, 0, 0, 0},
 					Epoch:   194048,
 				},
@@ -111,6 +115,10 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 		return &lctypes.ForkParameters{
 			GenesisForkVersion: []byte{0, 0, 0, 1},
 			Forks: []*lctypes.Fork{
+				{
+					Version: []byte{4, 0, 0, 1},
+					Epoch:   0,
+				},
 				{
 					Version: []byte{3, 0, 0, 1},
 					Epoch:   0,
@@ -130,6 +138,10 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{0, 0, 16, 32},
 			Forks: []*lctypes.Fork{
 				{
+					Version: []byte{4, 0, 16, 32},
+					Epoch:   231680,
+				},
+				{
 					Version: []byte{3, 0, 16, 32},
 					Epoch:   162304,
 				},
@@ -147,6 +159,10 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 		return &lctypes.ForkParameters{
 			GenesisForkVersion: []byte{144, 0, 0, 105},
 			Forks: []*lctypes.Fork{
+				{
+					Version: []byte{144, 0, 0, 115},
+					Epoch:   132608,
+				},
 				{
 					Version: []byte{144, 0, 0, 114},
 					Epoch:   56832,

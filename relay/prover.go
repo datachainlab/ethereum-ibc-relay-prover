@@ -219,20 +219,12 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 		return nil, fmt.Errorf("failed to compute slot at timestamp: %v", err)
 	}
 
-	var currentSyncCommittee *lctypes.SyncCommittee
-	if period := pr.computeSyncCommitteePeriod(pr.computeEpoch(slot)); period > 0 {
-		// if period > 0, get the current sync committee from the light-client update
-		update, err := pr.beaconClient.GetLightClientUpdate(period - 1)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get light-client update: %v", err)
-		}
-		currentSyncCommittee = update.Data.NextSyncCommittee.ToProto()
-	} else {
-		// if period == 0, get the current sync committee from the bootstrap data
-		currentSyncCommittee, err = pr.getBootstrapInPeriod0()
-		if err != nil {
-			return nil, fmt.Errorf("failed to get bootstrap in period 0: %v", err)
-		}
+	period := pr.computeSyncCommitteePeriod(pr.computeEpoch(slot))
+
+	log.GetLogger().Info("build initial state", "slot", slot, "block_number", blockNumber, "period", period)
+	currentSyncCommittee, err := pr.getBootstrapInPeriod(period)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get bootstrap in period %v: %v", period, err)
 	}
 	accountUpdate, err := pr.buildAccountUpdate(blockNumber)
 	if err != nil {
@@ -370,16 +362,16 @@ func (pr *Prover) buildClientState(
 	}
 }
 
-func (pr *Prover) getBootstrapInPeriod0() (*lctypes.SyncCommittee, error) {
+func (pr *Prover) getBootstrapInPeriod(period uint64) (*lctypes.SyncCommittee, error) {
 	slotsPerEpoch := pr.slotsPerEpoch()
-	startSlot := pr.getPeriodBoundarySlot(0)
-	lastSlotInPeriod := pr.getPeriodBoundarySlot(1) - 1
+	startSlot := pr.getPeriodBoundarySlot(period)
+	lastSlotInPeriod := pr.getPeriodBoundarySlot(period+1) - 1
 	var errs []error
 	for i := startSlot + slotsPerEpoch; i <= lastSlotInPeriod; i += slotsPerEpoch {
 		res, err := pr.beaconClient.GetBlockRoot(i, false)
 		if err != nil {
 			errs = append(errs, err)
-			return nil, fmt.Errorf("there is no available bootstrap in period: period=0 err=%v", errors.Join(errs...))
+			return nil, fmt.Errorf("there is no available bootstrap in period: period=%v err=%v", period, errors.Join(errs...))
 		}
 		bootstrap, err := pr.beaconClient.GetBootstrap(res.Data.Root[:])
 		if err != nil {
@@ -389,7 +381,7 @@ func (pr *Prover) getBootstrapInPeriod0() (*lctypes.SyncCommittee, error) {
 			return bootstrap.Data.CurrentSyncCommittee.ToProto(), nil
 		}
 	}
-	return nil, fmt.Errorf("failed to get bootstrap in period: period=0 err=%v", errors.Join(errs...))
+	return nil, fmt.Errorf("failed to get bootstrap in period: period=%v err=%v", period, errors.Join(errs...))
 }
 
 func (pr *Prover) buildNextSyncCommitteeUpdateForCurrent(period uint64, trustedHeight clienttypes.Height) (*lctypes.Header, error) {

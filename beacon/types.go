@@ -16,7 +16,7 @@ import (
 
 type H256 = [32]byte
 type BeaconBlockHeader = ethpb.BeaconBlockHeader
-type ExecutionPayloadHeader = enginev1.ExecutionPayloadHeaderCapella
+type ExecutionPayloadHeader = enginev1.ExecutionPayloadHeaderDeneb
 
 type LightClientUpdate struct {
 	AttestedHeader          BeaconBlockHeader

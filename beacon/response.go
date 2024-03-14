@@ -6,7 +6,7 @@ import (
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
 	"github.com/prysmaticlabs/prysm/v4/api/client/builder"
-	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/apimiddleware"
+	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/eth/beacon"
 	"github.com/prysmaticlabs/prysm/v4/consensus-types/primitives"
 	enginev1 "github.com/prysmaticlabs/prysm/v4/proto/engine/v1"
 	types "github.com/prysmaticlabs/prysm/v4/validator/keymanager/remote-web3signer/v1"
@@ -18,7 +18,7 @@ type Uint64 = builder.Uint64String
 
 // Response types
 
-type GenesisResponse = apimiddleware.GenesisResponseJson
+type GenesisResponse = beacon.GetGenesisResponse
 
 type BlockRootResponse struct {
 	Data struct {
@@ -35,9 +35,9 @@ type LightClientHeader struct {
 
 func (h *LightClientHeader) UnmarshalJSON(bz []byte) error {
 	type LightClientHeaderJSON struct {
-		Beacon          types.BeaconBlockHeader               `json:"beacon"`
-		Execution       builder.ExecutionPayloadHeaderCapella `json:"execution"`
-		ExecutionBranch []hexutil.Bytes                       `json:"execution_branch"`
+		Beacon          types.BeaconBlockHeader             `json:"beacon"`
+		Execution       builder.ExecutionPayloadHeaderDeneb `json:"execution"`
+		ExecutionBranch []hexutil.Bytes                     `json:"execution_branch"`
 	}
 
 	var hj LightClientHeaderJSON
@@ -60,7 +60,7 @@ func (h *LightClientHeader) UnmarshalJSON(bz []byte) error {
 			StateRoot:     hj.Beacon.StateRoot,
 			BodyRoot:      hj.Beacon.BodyRoot,
 		},
-		Execution: enginev1.ExecutionPayloadHeaderCapella{
+		Execution: enginev1.ExecutionPayloadHeaderDeneb{
 			ParentHash:       hj.Execution.ParentHash,
 			FeeRecipient:     hj.Execution.FeeRecipient,
 			StateRoot:        hj.Execution.StateRoot,
@@ -76,6 +76,8 @@ func (h *LightClientHeader) UnmarshalJSON(bz []byte) error {
 			BlockHash:        hj.Execution.BlockHash,
 			TransactionsRoot: hj.Execution.TransactionsRoot,
 			WithdrawalsRoot:  hj.Execution.WithdrawalsRoot,
+			BlobGasUsed:      uint64(hj.Execution.BlobGasUsed),
+			ExcessBlobGas:    uint64(hj.Execution.ExcessBlobGas),
 		},
 		ExecutionBranch: hj.ExecutionBranch,
 	}
@@ -123,7 +125,7 @@ type LightClientFinalityUpdate struct {
 	SignatureSlot   Uint64            `json:"signature_slot"`
 }
 
-type StateFinalityCheckpointResponse = apimiddleware.StateFinalityCheckpointResponseJson
+type StateFinalityCheckpointResponse = beacon.GetFinalityCheckpointsResponse
 
 type SyncAggregate struct {
 	SyncCommitteeBits      hexutil.Bytes `json:"sync_committee_bits"`
