@@ -94,6 +94,10 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			GenesisForkVersion: []byte{0, 0, 0, 0},
 			Forks: []*lctypes.Fork{
 				{
+					Version: []byte{4, 0, 0, 0},
+					Epoch:   269568,
+				},
+				{
 					Version: []byte{3, 0, 0, 0},
 					Epoch:   194048,
 				},
