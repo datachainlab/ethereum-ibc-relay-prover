@@ -425,8 +425,8 @@ github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuA
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=
 github.com/datachainlab/cosmos-sdk v0.47.4-0.20240110084139-cf28f5d7f2ac h1:UX7Cqu4JtIalSm9XRNY9TI8ertyDQtSXBJdE9+nvB6E=
 github.com/datachainlab/cosmos-sdk v0.47.4-0.20240110084139-cf28f5d7f2ac/go.mod h1:7DPaPqx6OtbKg94xor7Z52UMHK0QxBIgwYLzU9bnBx0=
-github.com/datachainlab/ethereum-ibc-relay-chain v0.2.9 h1:xikiZ7IKhxvcAEVW9vZmGBlTIU8k+nIfqL/9Ki4l0S0=
-github.com/datachainlab/ethereum-ibc-relay-chain v0.2.9/go.mod h1:FDKiZNh2r8kz/KAXBG9tNDcoT6jyiUR1EfiE9W7Xjbc=
+github.com/datachainlab/ethereum-ibc-relay-chain v0.2.11 h1:Gt6hPFdZ8NnaqpqnlfFqTc5vubqa4wqi0z+ublHkvFA=
+github.com/datachainlab/ethereum-ibc-relay-chain v0.2.11/go.mod h1:FDKiZNh2r8kz/KAXBG9tNDcoT6jyiUR1EfiE9W7Xjbc=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1 h1:vj9j/u1bqnvCEfJOwUhtlOARqs3+rkHYY13jYWTU97c=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
@@ -822,8 +822,8 @@ github.com/huin/goupnp v1.0.0/go.mod h1:n9v9KO1tAxYH82qOn+UTIFQDmx5n1Zxd/ClZDMX7
 github.com/huin/goupnp v1.3.0 h1:UvLUlWDNpoUdYzb2TCn+MuTWtcjXKSza2n6CBdQ0xXc=
 github.com/huin/goupnp v1.3.0/go.mod h1:gnGPsThkYa7bFi/KWmEysQRf48l2dvR5bxr2OFckNX8=
 github.com/huin/goutil v0.0.0-20170803182201-1ca381bf3150/go.mod h1:PpLOETDnJ0o3iZrZfqZzyLl6l7F3c6L1oWn7OICBi6o=
-github.com/hyperledger-labs/yui-relayer v0.4.19 h1:I139zRG0228bRAyrhEV2Pgdwbv9Fx2vw3azNHhYqnsc=
-github.com/hyperledger-labs/yui-relayer v0.4.19/go.mod h1:Hdc/ERCPDhbipri45/U6+/3kDH7EttIWGdql+Rd3tZg=
+github.com/hyperledger-labs/yui-relayer v0.4.21 h1:37IewA8w5Ffsp6ySOfpLjjfwlQkeK/Mxvlc830NnJmo=
+github.com/hyperledger-labs/yui-relayer v0.4.21/go.mod h1:Hdc/ERCPDhbipri45/U6+/3kDH7EttIWGdql+Rd3tZg=
 github.com/ianlancetaylor/demangle v0.0.0-20181102032728-5e5cf60278f6/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/ianlancetaylor/demangle v0.0.0-20200824232613-28f6c0f3b639/go.mod h1:aSSvb/t6k1mPoxDqO4vJh6VOCGPwU4O0C2/Eqndh1Sc=
 github.com/imdario/mergo v0.3.5/go.mod h1:2EnlNZ0deacrJVfApfmtdGgDfMuh/nq6Ok1EcJh5FfA=

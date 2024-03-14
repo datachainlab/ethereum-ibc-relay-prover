@@ -8,9 +8,9 @@ require (
 	github.com/cosmos/cosmos-sdk v0.47.3
 	github.com/cosmos/gogoproto v1.4.11
 	github.com/cosmos/ibc-go/v7 v7.2.0
-	github.com/datachainlab/ethereum-ibc-relay-chain v0.2.9
+	github.com/datachainlab/ethereum-ibc-relay-chain v0.2.11
 	github.com/ethereum/go-ethereum v1.13.8
-	github.com/hyperledger-labs/yui-relayer v0.4.19
+	github.com/hyperledger-labs/yui-relayer v0.4.21
 	github.com/prysmaticlabs/fastssz v0.0.0-20221107182844-78142813af44
 	github.com/prysmaticlabs/prysm/v4 v4.1.1
 	github.com/spf13/cobra v1.7.0
