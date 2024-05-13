@@ -7,7 +7,7 @@ import (
 
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	fastssz "github.com/prysmaticlabs/fastssz"
-	"github.com/prysmaticlabs/prysm/v4/encoding/ssz"
+	"github.com/prysmaticlabs/prysm/v5/encoding/ssz"
 )
 
 func generateMerkleProof(leaves [][]byte, leafIndex uint64) ([][]byte, error) {

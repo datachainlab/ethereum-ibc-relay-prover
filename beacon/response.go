@@ -5,11 +5,11 @@ import (
 	"strconv"
 
 	"github.com/ethereum/go-ethereum/common/hexutil"
-	"github.com/prysmaticlabs/prysm/v4/api/client/builder"
-	"github.com/prysmaticlabs/prysm/v4/beacon-chain/rpc/eth/beacon"
-	"github.com/prysmaticlabs/prysm/v4/consensus-types/primitives"
-	enginev1 "github.com/prysmaticlabs/prysm/v4/proto/engine/v1"
-	types "github.com/prysmaticlabs/prysm/v4/validator/keymanager/remote-web3signer/v1"
+	"github.com/prysmaticlabs/prysm/v5/api/client/builder"
+	"github.com/prysmaticlabs/prysm/v5/api/server/structs"
+	"github.com/prysmaticlabs/prysm/v5/consensus-types/primitives"
+	enginev1 "github.com/prysmaticlabs/prysm/v5/proto/engine/v1"
+	types "github.com/prysmaticlabs/prysm/v5/validator/keymanager/remote-web3signer/v1"
 )
 
 // Primitives
@@ -18,7 +18,7 @@ type Uint64 = builder.Uint64String
 
 // Response types
 
-type GenesisResponse = beacon.GetGenesisResponse
+type GenesisResponse = structs.GetGenesisResponse
 
 type BlockRootResponse struct {
 	Data struct {
@@ -125,7 +125,7 @@ type LightClientFinalityUpdate struct {
 	SignatureSlot   Uint64            `json:"signature_slot"`
 }
 
-type StateFinalityCheckpointResponse = beacon.GetFinalityCheckpointsResponse
+type StateFinalityCheckpointResponse = structs.GetFinalityCheckpointsResponse
 
 type SyncAggregate struct {
 	SyncCommitteeBits      hexutil.Bytes `json:"sync_committee_bits"`
