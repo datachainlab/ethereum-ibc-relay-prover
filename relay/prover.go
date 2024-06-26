@@ -3,6 +3,7 @@ package relay
 import (
 	"bytes"
 	"context"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"time"
@@ -29,6 +30,10 @@ type Prover struct {
 func NewProver(chain *ethereum.Chain, config ProverConfig) *Prover {
 	beaconClient := beacon.NewClient(config.BeaconEndpoint)
 	return &Prover{chain: chain, config: config, executionClient: chain.Client(), beaconClient: beaconClient}
+}
+
+func (pr *Prover) GetLogger() *log.RelayLogger {
+	return log.GetLogger().WithChain(pr.chain.ChainID()).WithModule(ModuleName)
 }
 
 //--------- Prover implementation ---------//
@@ -73,7 +78,7 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 	if err != nil {
 		return nil, nil, err
 	}
-	log.GetLogger().Debug("InitialState", "initial_state", initialState)
+	pr.GetLogger().Debug("InitialState", "initial_state", initialState)
 
 	clientState := pr.buildClientState(
 		initialState.Genesis.GenesisValidatorsRoot[:],
@@ -107,6 +112,8 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		return nil, err
 	}
 
+	pr.GetLogger().Debug("query the latest height of the counterparty chain", "latest_height", latestHeight)
+
 	// retrieve the client state from the counterparty chain
 	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(context.TODO(), latestHeight))
 	if err != nil {
@@ -114,7 +121,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	}
 	var cs ibcexported.ClientState
 	if err := pr.codec.UnpackAny(counterpartyClientRes.ClientState, &cs); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unpack Any into client state: %v", err)
 	}
 
 	if cs.GetLatestHeight().GetRevisionHeight() == lfh.ExecutionUpdate.BlockNumber {
@@ -125,25 +132,25 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 
 	statePeriod, err := pr.getPeriodWithBlockNumber(cs.GetLatestHeight().GetRevisionHeight())
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get period with block number: block_number=%v %v", cs.GetLatestHeight().GetRevisionHeight(), err)
 	}
 	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(lfh.ConsensusUpdate.FinalizedHeader.Slot))
 
-	log.GetLogger().Debug("try to setup headers for updating the light-client", "lc_latest_height", cs.GetLatestHeight(), "lc_latest_height_period", statePeriod, "latest_period", latestPeriod)
+	pr.GetLogger().Debug("try to setup headers for updating the light-client", "lc_latest_height", cs.GetLatestHeight(), "lc_latest_height_period", statePeriod, "latest_period", latestPeriod)
 
 	if statePeriod == latestPeriod {
 		latestHeight := cs.GetLatestHeight().(clienttypes.Height)
 		res, err := pr.beaconClient.GetLightClientUpdate(statePeriod)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get LightClientUpdate: state_period=%v %v", statePeriod, err)
 		}
 		root, err := res.Data.FinalizedHeader.Beacon.HashTreeRoot()
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to calculate hash tree root: %v", err)
 		}
 		bootstrapRes, err := pr.beaconClient.GetBootstrap(root[:])
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to get bootstrap: root=%x %v", root, err)
 		}
 		lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
 			TrustedHeight: &latestHeight,
@@ -168,7 +175,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		if p == statePeriod {
 			header, err = pr.buildNextSyncCommitteeUpdateForCurrent(statePeriod, trustedHeight)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to build next sync committee update for current: period=%v trusted_height=%v %v", p, trustedHeight, err)
 			}
 		} else {
 			if trustedSyncCommittee == nil {
@@ -176,10 +183,10 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 			}
 			header, err = pr.buildNextSyncCommitteeUpdateForNext(p, trustedHeight, trustedSyncCommittee)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("failed to build next sync committee update for next: period=%v trusted_height=%v %v", p, trustedHeight, err)
 			}
 		}
-		log.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
+		pr.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
 		trustedHeight = clienttypes.NewHeight(0, header.ExecutionUpdate.BlockNumber)
 		trustedSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
 		headers = append(headers, header)
@@ -221,7 +228,7 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 
 	period := pr.computeSyncCommitteePeriod(pr.computeEpoch(slot))
 
-	log.GetLogger().Info("build initial state", "slot", slot, "block_number", blockNumber, "period", period)
+	pr.GetLogger().Info("build initial state", "slot", slot, "block_number", blockNumber, "period", period)
 	currentSyncCommittee, err := pr.getBootstrapInPeriod(period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bootstrap in period %v: %v", period, err)
@@ -271,6 +278,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 	if err != nil {
 		return nil, err
 	}
+	pr.GetLogger().Info("build latest finalized header", "block_number", executionHeader.BlockNumber, "timestamp", executionHeader.Timestamp, "state_root", hex.EncodeToString(executionHeader.StateRoot))
 	return &lctypes.Header{
 		ConsensusUpdate: lcUpdate,
 		ExecutionUpdate: executionUpdate,

@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"encoding/hex"
 	"math/big"
 
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
@@ -17,6 +18,7 @@ func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate
 	if err != nil {
 		return nil, err
 	}
+	pr.GetLogger().Info("buildAccountUpdate: get proof", "block_number", blockNumber, "ibc_address", pr.chain.Config().IBCAddress().String(), "account_proof", hex.EncodeToString(proof.AccountProofRLP), "storage_hash", hex.EncodeToString(proof.StorageHash[:]))
 	return &lctypes.AccountUpdate{
 		AccountProof:       proof.AccountProofRLP,
 		AccountStorageRoot: proof.StorageHash[:],
