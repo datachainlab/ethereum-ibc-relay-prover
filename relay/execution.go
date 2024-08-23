@@ -5,7 +5,6 @@ import (
 	"math/big"
 
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
-	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
@@ -27,11 +26,11 @@ func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate
 
 func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
 	// calculate slot for commitment
-	slot := crypto.Keccak256Hash(append(
+	storageKey := crypto.Keccak256Hash(append(
 		crypto.Keccak256Hash(path).Bytes(),
-		common.Hash{}.Bytes()...,
+		IBCCommitmentsSlot.Bytes()...,
 	))
-	marshaledSlot, err := slot.MarshalText()
+	storageKeyHex, err := storageKey.MarshalText()
 	if err != nil {
 		return nil, err
 	}
@@ -39,7 +38,7 @@ func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
 	// call eth_getProof
 	stateProof, err := pr.executionClient.GetProof(
 		pr.chain.Config().IBCAddress(),
-		[][]byte{marshaledSlot},
+		[][]byte{storageKeyHex},
 		big.NewInt(height),
 	)
 	if err != nil {
