@@ -15,9 +15,12 @@ import (
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/relay/ethereum"
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
+	"github.com/ethereum/go-ethereum/common"
 	"github.com/hyperledger-labs/yui-relayer/core"
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
+
+var IBCCommitmentsSlot = common.HexToHash("1ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900")
 
 type Prover struct {
 	chain           *ethereum.Chain
@@ -342,8 +345,6 @@ func (pr *Prover) buildClientState(
 	latestSlot uint64,
 	latestExecutionBlockNumber uint64,
 ) *lctypes.ClientState {
-	var commitmentsSlot [32]byte
-
 	return &lctypes.ClientState{
 		GenesisValidatorsRoot:        genesisValidatorsRoot,
 		MinSyncCommitteeParticipants: 1,
@@ -355,7 +356,7 @@ func (pr *Prover) buildClientState(
 		EpochsPerSyncCommitteePeriod: pr.epochsPerSyncCommitteePeriod(),
 
 		IbcAddress:         pr.chain.Config().IBCAddress().Bytes(),
-		IbcCommitmentsSlot: commitmentsSlot[:],
+		IbcCommitmentsSlot: IBCCommitmentsSlot[:],
 		TrustLevel: &lctypes.Fraction{
 			Numerator:   2,
 			Denominator: 3,
