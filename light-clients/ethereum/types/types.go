@@ -2,7 +2,7 @@ package types
 
 import "fmt"
 
-func (u *LightClientUpdate) ValidateBasic() error {
+func (u *ConsensusUpdate) ValidateBasic() error {
 	if u == nil {
 		return fmt.Errorf("light client update cannot be nil")
 	}
