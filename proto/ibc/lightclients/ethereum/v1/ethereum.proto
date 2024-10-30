@@ -41,7 +41,7 @@ message ConsensusState {
 
 message Header {
   TrustedSyncCommittee trusted_sync_committee = 1;
-  LightClientUpdate consensus_update = 2;
+  ConsensusUpdate consensus_update = 2;
   ExecutionUpdate execution_update = 3;
   AccountUpdate account_update = 4;
   // seconds from unix epoch
@@ -67,9 +67,19 @@ message Fraction {
 message Fork {
   bytes version = 1;
   uint64 epoch = 2;
+  ForkSpec spec = 3;
 }
 
-message LightClientUpdate {
+message ForkSpec {
+  uint32 finalized_root_gindex = 1;
+  uint32 current_sync_committee_gindex = 2;
+  uint32 next_sync_committee_gindex = 3;
+  uint32 execution_payload_gindex = 4;
+  uint32 execution_payload_state_root_gindex = 5;
+  uint32 execution_payload_block_number_gindex = 6;
+}
+
+message ConsensusUpdate {
   BeaconBlockHeader attested_header = 1;
   SyncCommittee next_sync_committee = 2;
   repeated bytes next_sync_committee_branch = 3;
@@ -114,13 +124,13 @@ message BeaconBlockHeader {
 message FinalizedHeaderMisbehaviour {
   string client_id = 1;
   TrustedSyncCommittee trusted_sync_committee = 2;
-  LightClientUpdate consensus_update_1 = 3;
-  LightClientUpdate consensus_update_2 = 4;
+  ConsensusUpdate consensus_update_1 = 3;
+  ConsensusUpdate consensus_update_2 = 4;
 }
 
 message NextSyncCommitteeMisbehaviour {
   string client_id = 1;
   TrustedSyncCommittee trusted_sync_committee = 2;
-  LightClientUpdate consensus_update_1 = 3;
-  LightClientUpdate consensus_update_2 = 4;
+  ConsensusUpdate consensus_update_1 = 3;
+  ConsensusUpdate consensus_update_2 = 4;
 }

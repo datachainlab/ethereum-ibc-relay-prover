@@ -45,12 +45,12 @@ type Checkpoint struct {
 	Root  [32]byte
 }
 
-func (lcu *LightClientUpdateData) ToProto() *lctypes.LightClientUpdate {
+func (lcu *LightClientUpdateData) ToProto() *lctypes.ConsensusUpdate {
 	executionRoot, err := lcu.FinalizedHeader.Execution.HashTreeRoot()
 	if err != nil {
 		panic(err)
 	}
-	return &lctypes.LightClientUpdate{
+	return &lctypes.ConsensusUpdate{
 		AttestedHeader:           lcu.AttestedHeader.ToProto(),
 		NextSyncCommittee:        lcu.NextSyncCommittee.ToProto(),
 		NextSyncCommitteeBranch:  convertToBytesSlice(lcu.NextSyncCommitteeBranch),
@@ -70,12 +70,12 @@ func (sc *SyncCommittee) ToProto() *lctypes.SyncCommittee {
 	}
 }
 
-func (lcf *LightClientFinalityUpdate) ToProto() *lctypes.LightClientUpdate {
+func (lcf *LightClientFinalityUpdate) ToProto() *lctypes.ConsensusUpdate {
 	executionRoot, err := lcf.FinalizedHeader.Execution.HashTreeRoot()
 	if err != nil {
 		panic(err)
 	}
-	return &lctypes.LightClientUpdate{
+	return &lctypes.ConsensusUpdate{
 		AttestedHeader:           lcf.AttestedHeader.ToProto(),
 		NextSyncCommittee:        nil,
 		NextSyncCommitteeBranch:  nil,
