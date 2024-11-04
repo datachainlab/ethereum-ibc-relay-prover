@@ -68,6 +68,7 @@ type InitialState struct {
 	AccountStorageRoot   [32]byte
 	Timestamp            time.Time
 	CurrentSyncCommittee lctypes.SyncCommittee
+	NextSyncCommittee    lctypes.SyncCommittee
 }
 
 // CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
@@ -94,6 +95,7 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 		StorageRoot:          initialState.AccountStorageRoot[:],
 		Timestamp:            initialState.Timestamp,
 		CurrentSyncCommittee: initialState.CurrentSyncCommittee.AggregatePubkey,
+		NextSyncCommittee:    initialState.NextSyncCommittee.AggregatePubkey,
 	}
 	return clientState, consensusState, nil
 }
@@ -168,37 +170,40 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 	//--------- In case statePeriod < latestPeriod ---------//
 
 	var (
-		headers              []core.Header
-		trustedSyncCommittee *lctypes.SyncCommittee
-		trustedHeight        = cs.GetLatestHeight().(clienttypes.Height)
+		headers                     []core.Header
+		trustedNextSyncCommittee    *lctypes.SyncCommittee
+		trustedCurrentSyncCommittee *lctypes.SyncCommittee
+		trustedHeight               = cs.GetLatestHeight().(clienttypes.Height)
 	)
-
-	for p := statePeriod; p < latestPeriod; p++ {
-		var header *lctypes.Header
-		if p == statePeriod {
-			header, err = pr.buildNextSyncCommitteeUpdateForCurrent(statePeriod, trustedHeight)
-			if err != nil {
-				return nil, fmt.Errorf("failed to build next sync committee update for current: period=%v trusted_height=%v %v", p, trustedHeight, err)
-			}
-		} else {
-			if trustedSyncCommittee == nil {
-				return nil, fmt.Errorf("trusted sync committee must not be nil: period=%v", p)
-			}
-			header, err = pr.buildNextSyncCommitteeUpdateForNext(p, trustedHeight, trustedSyncCommittee)
-			if err != nil {
-				return nil, fmt.Errorf("failed to build next sync committee update for next: period=%v trusted_height=%v %v", p, trustedHeight, err)
-			}
+	res, err := pr.beaconClient.GetLightClientUpdate(statePeriod)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LightClientUpdate: state_period=%v %v", statePeriod, err)
+	}
+	trustedNextSyncCommittee = res.Data.ToProto().NextSyncCommittee
+	for p := statePeriod + 1; p <= latestPeriod; p++ {
+		header, err := pr.buildNextSyncCommitteeUpdate(p, trustedHeight, trustedNextSyncCommittee)
+		if err != nil {
+			return nil, fmt.Errorf("failed to build next sync committee update for next: period=%v trusted_height=%v %v", p, trustedHeight, err)
 		}
 		pr.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
 		trustedHeight = clienttypes.NewHeight(0, header.ExecutionUpdate.BlockNumber)
-		trustedSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
+		trustedCurrentSyncCommittee = trustedNextSyncCommittee
+		trustedNextSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
 		headers = append(headers, header)
 	}
-
+	if trustedCurrentSyncCommittee == nil { // never happen
+		panic(fmt.Errorf("trusted current sync committee must not be nil: period=%v", statePeriod))
+	}
+	if trustedHeight.GT(lfh.GetHeight()) {
+		return nil, fmt.Errorf("the latest finalized header is older than the trusted height: finalized_block_number=%v trusted_block_number=%v", lfh.GetHeight().GetRevisionHeight(), trustedHeight.GetRevisionHeight())
+	} else if trustedHeight.EQ(lfh.GetHeight()) {
+		pr.GetLogger().Debug("the latest finalized header is the same as the trusted height", "finalized_block_number", lfh.GetHeight().GetRevisionHeight(), "trusted_block_number", trustedHeight.GetRevisionHeight())
+		return headers, nil
+	}
 	lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
 		TrustedHeight: &trustedHeight,
-		SyncCommittee: trustedSyncCommittee,
-		IsNext:        true,
+		SyncCommittee: trustedCurrentSyncCommittee,
+		IsNext:        false,
 	}
 	headers = append(headers, lfh)
 	return headers, nil
@@ -244,8 +249,13 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 	copy(accountStorageRoot[:], accountUpdate.AccountStorageRoot)
 	genesis, err := pr.beaconClient.GetGenesis()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to get genesis: %v", err)
 	}
+	res2, err := pr.beaconClient.GetLightClientUpdate(period)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get LightClientUpdate: period=%v %v", period, err)
+	}
+	nextSyncCommittee := res2.Data.ToProto().NextSyncCommittee
 	return &InitialState{
 		Genesis:              *genesis,
 		Slot:                 slot,
@@ -253,6 +263,7 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 		AccountStorageRoot:   accountStorageRoot,
 		Timestamp:            timestamp,
 		CurrentSyncCommittee: *currentSyncCommittee,
+		NextSyncCommittee:    *nextSyncCommittee,
 	}, nil
 }
 
@@ -393,53 +404,7 @@ func (pr *Prover) getBootstrapInPeriod(period uint64) (*lctypes.SyncCommittee, e
 	return nil, fmt.Errorf("failed to get bootstrap in period: period=%v err=%v", period, errors.Join(errs...))
 }
 
-func (pr *Prover) buildNextSyncCommitteeUpdateForCurrent(period uint64, trustedHeight clienttypes.Height) (*lctypes.Header, error) {
-	res, err := pr.beaconClient.GetLightClientUpdate(period)
-	if err != nil {
-		return nil, err
-	}
-	lcUpdate := res.Data.ToProto()
-	executionHeader := &res.Data.FinalizedHeader.Execution
-	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
-	if err != nil {
-		return nil, err
-	}
-	executionRoot, err := executionHeader.HashTreeRoot()
-	if err != nil {
-		return nil, err
-	}
-	if !bytes.Equal(executionRoot[:], lcUpdate.FinalizedExecutionRoot) {
-		return nil, fmt.Errorf("execution root mismatch: %X != %X", executionRoot, lcUpdate.FinalizedExecutionRoot)
-	}
-
-	accountUpdate, err := pr.buildAccountUpdate(executionHeader.BlockNumber)
-	if err != nil {
-		return nil, err
-	}
-
-	root, err := res.Data.FinalizedHeader.Beacon.HashTreeRoot()
-	if err != nil {
-		return nil, err
-	}
-	bootstrapRes, err := pr.beaconClient.GetBootstrap(root[:])
-	if err != nil {
-		return nil, err
-	}
-
-	return &lctypes.Header{
-		TrustedSyncCommittee: &lctypes.TrustedSyncCommittee{
-			TrustedHeight: &trustedHeight,
-			SyncCommittee: bootstrapRes.Data.CurrentSyncCommittee.ToProto(),
-			IsNext:        false,
-		},
-		ConsensusUpdate: lcUpdate,
-		ExecutionUpdate: executionUpdate,
-		AccountUpdate:   accountUpdate,
-		Timestamp:       executionHeader.Timestamp,
-	}, nil
-}
-
-func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeight clienttypes.Height, trustedSyncCommittee *lctypes.SyncCommittee) (*lctypes.Header, error) {
+func (pr *Prover) buildNextSyncCommitteeUpdate(period uint64, trustedHeight clienttypes.Height, trustedNextSyncCommittee *lctypes.SyncCommittee) (*lctypes.Header, error) {
 	res, err := pr.beaconClient.GetLightClientUpdate(period)
 	if err != nil {
 		return nil, err
@@ -465,7 +430,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdateForNext(period uint64, trustedHeig
 	return &lctypes.Header{
 		TrustedSyncCommittee: &lctypes.TrustedSyncCommittee{
 			TrustedHeight: &trustedHeight,
-			SyncCommittee: trustedSyncCommittee,
+			SyncCommittee: trustedNextSyncCommittee,
 			IsNext:        true,
 		},
 		ConsensusUpdate: lcUpdate,
