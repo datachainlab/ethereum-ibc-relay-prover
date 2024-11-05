@@ -87,7 +87,6 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 	clientState := pr.buildClientState(
 		initialState.Genesis.GenesisValidatorsRoot[:],
 		initialState.Genesis.GenesisTimeSeconds,
-		initialState.Slot,
 		initialState.BlockNumber,
 	)
 	consensusState := &lctypes.ConsensusState{
@@ -353,7 +352,6 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 func (pr *Prover) buildClientState(
 	genesisValidatorsRoot []byte,
 	genesisTime uint64,
-	latestSlot uint64,
 	latestExecutionBlockNumber uint64,
 ) *lctypes.ClientState {
 	return &lctypes.ClientState{
@@ -375,7 +373,6 @@ func (pr *Prover) buildClientState(
 		TrustingPeriod: pr.config.GetTrustingPeriod(),
 		MaxClockDrift:  pr.config.GetMaxClockDrift(),
 
-		LatestSlot:                 latestSlot,
 		LatestExecutionBlockNumber: latestExecutionBlockNumber,
 
 		FrozenHeight: nil,
