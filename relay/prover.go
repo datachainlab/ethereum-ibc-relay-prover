@@ -83,7 +83,16 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 		return nil, nil, err
 	}
 	pr.GetLogger().Debug("InitialState", "initial_state", initialState)
-
+	committeeSize := len(initialState.CurrentSyncCommittee.Pubkeys)
+	if pr.config.IsMainnetPreset() {
+		if committeeSize != MAINNET_PRESET_SYNC_COMMITTEE_SIZE {
+			return nil, nil, fmt.Errorf("the size of current sync committee is not %v: actual=%v", MAINNET_PRESET_SYNC_COMMITTEE_SIZE, committeeSize)
+		}
+	} else {
+		if committeeSize != MINIMAL_PRESET_SYNC_COMMITTEE_SIZE {
+			return nil, nil, fmt.Errorf("the size of current sync committee is not %v: actual=%v", MINIMAL_PRESET_SYNC_COMMITTEE_SIZE, committeeSize)
+		}
+	}
 	clientState := pr.buildClientState(
 		initialState.Genesis.GenesisValidatorsRoot[:],
 		initialState.Genesis.GenesisTimeSeconds,
