@@ -174,6 +174,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		trustedCurrentSyncCommittee *lctypes.SyncCommittee
 		trustedHeight               = cs.GetLatestHeight().(clienttypes.Height)
 	)
+	pr.GetLogger().Debug("setup headers for updating the light-client", "state_period", statePeriod, "latest_period", latestPeriod, "client_state_latest_height", cs.GetLatestHeight().GetRevisionHeight())
 	res, err := pr.beaconClient.GetLightClientUpdate(statePeriod)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LightClientUpdate: state_period=%v %v", statePeriod, err)
@@ -277,11 +278,11 @@ func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 	executionHeader := &res.Data.FinalizedHeader.Execution
 	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build execution update: %v", err)
 	}
 	executionRoot, err := executionHeader.HashTreeRoot()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to calculate execution root: %v", err)
 	}
 	if !bytes.Equal(executionRoot[:], lcUpdate.FinalizedExecutionRoot) {
 		return nil, fmt.Errorf("execution root mismatch: %X != %X", executionRoot, lcUpdate.FinalizedExecutionRoot)
@@ -289,7 +290,7 @@ func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 
 	accountUpdate, err := pr.buildAccountUpdate(executionHeader.BlockNumber)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build account update: %v", err)
 	}
 	pr.GetLogger().Info("build latest finalized header", "block_number", executionHeader.BlockNumber, "timestamp", executionHeader.Timestamp, "state_root", hex.EncodeToString(executionHeader.StateRoot))
 	return &lctypes.Header{
@@ -383,15 +384,18 @@ func (pr *Prover) getBootstrapInPeriod(period uint64) (*lctypes.SyncCommittee, e
 	slotsPerEpoch := pr.slotsPerEpoch()
 	startSlot := pr.getPeriodBoundarySlot(period)
 	lastSlotInPeriod := pr.getPeriodBoundarySlot(period+1) - 1
+	pr.GetLogger().Debug("get bootstrap in period", "period", period, "start_slot", startSlot, "last_slot_in_period", lastSlotInPeriod, "slots_per_epoch", slotsPerEpoch)
 	var errs []error
 	for i := startSlot + slotsPerEpoch; i <= lastSlotInPeriod; i += slotsPerEpoch {
 		res, err := pr.beaconClient.GetBlockRoot(i, false)
 		if err != nil {
+			pr.GetLogger().Warn("failed to get block root", "slot", i, "err", err)
 			errs = append(errs, err)
 			return nil, fmt.Errorf("there is no available bootstrap in period: period=%v err=%v", period, errors.Join(errs...))
 		}
 		bootstrap, err := pr.beaconClient.GetBootstrap(res.Data.Root[:])
 		if err != nil {
+			pr.GetLogger().Warn("failed to get bootstrap", "root", res.Data.Root[:], "err", err)
 			errs = append(errs, err)
 			continue
 		} else {
@@ -410,11 +414,11 @@ func (pr *Prover) buildNextSyncCommitteeUpdate(period uint64, trustedHeight clie
 	executionHeader := &res.Data.FinalizedHeader.Execution
 	executionUpdate, err := pr.buildExecutionUpdate(executionHeader)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build execution update: %v", err)
 	}
 	executionRoot, err := executionHeader.HashTreeRoot()
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to calculate execution root: %v", err)
 	}
 	if !bytes.Equal(executionRoot[:], lcUpdate.FinalizedExecutionRoot) {
 		return nil, fmt.Errorf("execution root mismatch: %X != %X", executionRoot, lcUpdate.FinalizedExecutionRoot)
@@ -422,7 +426,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdate(period uint64, trustedHeight clie
 
 	accountUpdate, err := pr.buildAccountUpdate(executionHeader.BlockNumber)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to build account update: %v", err)
 	}
 	return &lctypes.Header{
 		TrustedSyncCommittee: &lctypes.TrustedSyncCommittee{
