@@ -16,6 +16,11 @@ const (
 	Sepolia = "sepolia"
 )
 
+const (
+	MAINNET_PRESET_SYNC_COMMITTEE_SIZE = 512
+	MINIMAL_PRESET_SYNC_COMMITTEE_SIZE = 32
+)
+
 var (
 	AltairSpec = lctypes.ForkSpec{
 		FinalizedRootGindex:        105,
