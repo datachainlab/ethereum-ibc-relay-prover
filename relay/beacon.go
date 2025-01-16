@@ -15,6 +15,7 @@ const (
 const (
 	EXECUTION_STATE_ROOT_LEAF_INDEX   = 2
 	EXECUTION_BLOCK_NUMBER_LEAF_INDEX = 6
+	EXECUTION_BLOCK_HASH_LEAF_INDEX   = 12
 )
 
 // minimal preset
@@ -104,10 +105,16 @@ func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadH
 	if err != nil {
 		return nil, err
 	}
+	blockHashBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_BLOCK_HASH_LEAF_INDEX)
+	if err != nil {
+		return nil, err
+	}
 	return &lctypes.ExecutionUpdate{
 		StateRoot:         executionHeader.StateRoot,
 		StateRootBranch:   stateRootBranch,
 		BlockNumber:       executionHeader.BlockNumber,
 		BlockNumberBranch: blockNumberBranch,
+		BlockHash:         executionHeader.BlockHash,
+		BlockHashBranch:   blockHashBranch,
 	}, nil
 }

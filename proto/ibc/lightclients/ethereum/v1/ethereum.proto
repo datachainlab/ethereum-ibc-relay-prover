@@ -76,6 +76,7 @@ message ForkSpec {
   uint32 execution_payload_gindex = 4;
   uint32 execution_payload_state_root_gindex = 5;
   uint32 execution_payload_block_number_gindex = 6;
+  uint32 execution_payload_block_hash_gindex = 7;
 }
 
 message ConsensusUpdate {
@@ -105,6 +106,8 @@ message ExecutionUpdate {
   repeated bytes state_root_branch = 2;
   uint64 block_number = 3;
   repeated bytes block_number_branch = 4;
+  bytes block_hash = 5;
+  repeated bytes block_hash_branch = 6;
 }
 
 message AccountUpdate {
