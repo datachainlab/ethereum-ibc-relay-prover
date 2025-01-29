@@ -44,6 +44,14 @@ var (
 		ExecutionPayloadStateRootGindex:   34,
 		ExecutionPayloadBlockNumberGindex: 38,
 	}
+	ElectraSpec = lctypes.ForkSpec{
+		FinalizedRootGindex:               169,
+		CurrentSyncCommitteeGindex:        86,
+		NextSyncCommitteeGindex:           87,
+		ExecutionPayloadGindex:            DenebSpec.ExecutionPayloadGindex,
+		ExecutionPayloadStateRootGindex:   DenebSpec.ExecutionPayloadStateRootGindex,
+		ExecutionPayloadBlockNumberGindex: DenebSpec.ExecutionPayloadBlockNumberGindex,
+	}
 )
 
 var _ core.ProverConfig = (*ProverConfig)(nil)
@@ -168,6 +176,11 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Version: []byte{4, 0, 0, 1},
 					Epoch:   0,
 					Spec:    &DenebSpec,
+				},
+				{
+					Version: []byte{5, 0, 0, 1},
+					Epoch:   8,
+					Spec:    &ElectraSpec,
 				},
 			},
 		}
