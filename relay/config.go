@@ -179,7 +179,7 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 				},
 				{
 					Version: []byte{5, 0, 0, 1},
-					Epoch:   8,
+					Epoch:   0,
 					Spec:    &ElectraSpec,
 				},
 			},
