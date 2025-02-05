@@ -4,11 +4,14 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
+	"io"
 	"net/http"
+	"slices"
 
 	"github.com/hyperledger-labs/yui-relayer/log"
 )
+
+var SupportedVersions = []string{"deneb", "electra"}
 
 type Client struct {
 	endpoint string
@@ -18,8 +21,8 @@ func NewClient(endpoint string) Client {
 	return Client{endpoint: endpoint}
 }
 
-func (Client) SupportedVersion() string {
-	return "deneb"
+func IsSupportedVersion(v string) bool {
+	return slices.Contains(SupportedVersions, v)
 }
 
 func (cl Client) GetGenesis() (*Genesis, error) {
@@ -57,7 +60,7 @@ func (cl Client) GetBootstrap(finalizedRoot []byte) (*LightClientBootstrapRespon
 	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/light_client/bootstrap/0x%v", hex.EncodeToString(finalizedRoot[:])), &res); err != nil {
 		return nil, err
 	}
-	if res.Version != cl.SupportedVersion() {
+	if !IsSupportedVersion(res.Version) {
 		return nil, fmt.Errorf("unsupported version: %v", res.Version)
 	}
 	return &res, nil
@@ -72,7 +75,7 @@ func (cl Client) GetLightClientUpdates(period uint64, count uint64) (LightClient
 		return nil, fmt.Errorf("unexpected response length: expected=%v actual=%v", count, len(res))
 	}
 	for i := range res {
-		if res[i].Version != cl.SupportedVersion() {
+		if !IsSupportedVersion(res[i].Version) {
 			return nil, fmt.Errorf("unsupported version: %v", res[i].Version)
 		}
 	}
@@ -92,7 +95,7 @@ func (cl Client) GetLightClientFinalityUpdate() (*LightClientFinalityUpdateRespo
 	if err := cl.get("/eth/v1/beacon/light_client/finality_update", &res); err != nil {
 		return nil, err
 	}
-	if res.Version != cl.SupportedVersion() {
+	if !IsSupportedVersion(res.Version) {
 		return nil, fmt.Errorf("unsupported version: %v", res.Version)
 	}
 	return &res, nil
@@ -105,7 +108,7 @@ func (cl Client) get(path string, res any) error {
 		return err
 	}
 	defer r.Body.Close()
-	bz, err := ioutil.ReadAll(r.Body)
+	bz, err := io.ReadAll(r.Body)
 	if err != nil {
 		return err
 	}
