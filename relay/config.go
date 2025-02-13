@@ -12,7 +12,6 @@ import (
 const (
 	Mainnet = "mainnet"
 	Minimal = "minimal"
-	Goerli  = "goerli"
 	Sepolia = "sepolia"
 )
 
@@ -116,7 +115,7 @@ func (prc *ProverConfig) GetMaxClockDrift() time.Duration {
 // NOTE the prover supports only the mainnet and minimal preset for now
 func (prc *ProverConfig) IsMainnetPreset() bool {
 	switch prc.Network {
-	case Mainnet, Goerli, Sepolia:
+	case Mainnet, Sepolia:
 		return true
 	case Minimal:
 		return false
@@ -184,32 +183,6 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 				},
 			},
 		}
-	case Goerli:
-		return &lctypes.ForkParameters{
-			GenesisForkVersion: []byte{0, 0, 16, 32},
-			Forks: []*lctypes.Fork{
-				{
-					Version: []byte{1, 0, 16, 32},
-					Epoch:   36660,
-					Spec:    &AltairSpec,
-				},
-				{
-					Version: []byte{2, 0, 16, 32},
-					Epoch:   112260,
-					Spec:    &BellatrixSpec,
-				},
-				{
-					Version: []byte{3, 0, 16, 32},
-					Epoch:   162304,
-					Spec:    &CapellaSpec,
-				},
-				{
-					Version: []byte{4, 0, 16, 32},
-					Epoch:   231680,
-					Spec:    &DenebSpec,
-				},
-			},
-		}
 	case Sepolia:
 		return &lctypes.ForkParameters{
 			GenesisForkVersion: []byte{144, 0, 0, 105},
@@ -233,6 +206,11 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Version: []byte{144, 0, 0, 115},
 					Epoch:   132608,
 					Spec:    &DenebSpec,
+				},
+				{
+					Version: []byte{144, 0, 0, 116},
+					Epoch:   222464,
+					Spec:    &ElectraSpec,
 				},
 			},
 		}
