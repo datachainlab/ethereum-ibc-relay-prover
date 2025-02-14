@@ -74,7 +74,7 @@ type InitialState struct {
 // CreateInitialLightClientState returns a pair of ClientState and ConsensusState based on the state of the self chain at `height`.
 // These states will be submitted to the counterparty chain as MsgCreateClient.
 // If `height` is nil, the latest finalized height is selected automatically.
-func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
+func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibcexported.Height) (ibcexported.ClientState, ibcexported.ConsensusState, error) {
 	if height == nil {
 		height = pr.newHeight(0)
 	}
@@ -111,7 +111,7 @@ func (pr *Prover) CreateInitialLightClientState(height ibcexported.Height) (ibce
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterpaty chain
 // The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 // if the header slice's length == 0 and err == nil, the relayer should skips the update-client
-func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
 	lfh, ok := latestFinalizedHeader.(*lctypes.Header)
 	if !ok {
 		return nil, fmt.Errorf("unexpected header type: %T", latestFinalizedHeader)
@@ -120,7 +120,7 @@ func (pr *Prover) SetupHeadersForUpdate(counterparty core.FinalityAwareChain, la
 		return nil, err
 	}
 
-	latestHeight, err := counterparty.LatestHeight()
+	latestHeight, err := counterparty.LatestHeight(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -230,7 +230,7 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 		return nil, fmt.Errorf("the height is not finalized yet: blockNumber=%v finalized_block_number=%v", blockNumber, eh.BlockNumber)
 	}
 
-	timestamp, err := pr.chain.Timestamp(pr.newHeight(int64(blockNumber)))
+	timestamp, err := pr.chain.Timestamp(context.TODO(), pr.newHeight(int64(blockNumber)))
 	if err != nil {
 		return nil, fmt.Errorf("failed to get timestamp: %v", err)
 	}
@@ -278,7 +278,7 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 
 // buildLatestFinalizedHeader returns the latest finalized header on this chain
 // The returned header is expected to be the latest one of headers that can be verified by the light client
-func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
+func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (headers core.Header, err error) {
 	res, err := pr.beaconClient.GetLightClientFinalityUpdate()
 	if err != nil {
 		return nil, err
@@ -310,8 +310,8 @@ func (pr *Prover) GetLatestFinalizedHeader() (headers core.Header, err error) {
 	}, nil
 }
 
-func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) (bool, error) {
-	cpQueryHeight, err := counterparty.LatestHeight()
+func (pr *Prover) CheckRefreshRequired(ctx context.Context, counterparty core.ChainInfoICS02Querier) (bool, error) {
+	cpQueryHeight, err := counterparty.LatestHeight(context.TODO())
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the counterparty chain: %v", err)
 	}
@@ -338,12 +338,12 @@ func (pr *Prover) CheckRefreshRequired(counterparty core.ChainInfoICS02Querier) 
 	}
 	lcLastTimestamp := time.Unix(0, int64(cons.GetTimestamp()))
 
-	selfQueryHeight, err := pr.chain.LatestHeight()
+	selfQueryHeight, err := pr.chain.LatestHeight(context.TODO())
 	if err != nil {
 		return false, fmt.Errorf("failed to get the latest height of the self chain: %v", err)
 	}
 
-	selfTimestamp, err := pr.chain.Timestamp(selfQueryHeight)
+	selfTimestamp, err := pr.chain.Timestamp(context.TODO(), selfQueryHeight)
 	if err != nil {
 		return false, fmt.Errorf("failed to get timestamp of the self chain: %v", err)
 	}
