@@ -20,6 +20,14 @@ const (
 	MINIMAL_PRESET_SYNC_COMMITTEE_SIZE = 32
 )
 
+const (
+	Altair    = "altair"
+	Bellatrix = "bellatrix"
+	Capella   = "capella"
+	Deneb     = "deneb"
+	Electra   = "electra"
+)
+
 var (
 	AltairSpec = lctypes.ForkSpec{
 		FinalizedRootGindex:        105,
@@ -158,27 +166,27 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			Forks: []*lctypes.Fork{
 				{
 					Version: []byte{1, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   prc.MinimalForkSched[Altair],
 					Spec:    &AltairSpec,
 				},
 				{
 					Version: []byte{2, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   prc.MinimalForkSched[Bellatrix],
 					Spec:    &BellatrixSpec,
 				},
 				{
 					Version: []byte{3, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   prc.MinimalForkSched[Capella],
 					Spec:    &CapellaSpec,
 				},
 				{
 					Version: []byte{4, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   prc.MinimalForkSched[Deneb],
 					Spec:    &DenebSpec,
 				},
 				{
 					Version: []byte{5, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   prc.MinimalForkSched[Electra],
 					Spec:    &ElectraSpec,
 				},
 			},
