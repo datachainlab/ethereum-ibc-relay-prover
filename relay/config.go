@@ -101,6 +101,14 @@ func (prc ProverConfig) Validate() error {
 	if prc.RefreshThresholdRate.Numerator > prc.RefreshThresholdRate.Denominator {
 		return fmt.Errorf("config attribute \"refresh_threshold_rate\" must be less than or equal to 1.0: actual=%v/%v", prc.RefreshThresholdRate.Numerator, prc.RefreshThresholdRate.Denominator)
 	}
+	for hf := range prc.MinimalForkSched {
+		switch hf {
+		case Altair, Bellatrix, Capella, Deneb, Electra:
+			// OK
+		default:
+			return fmt.Errorf("config attribute \"minimal_fork_sched\" contains an unknown key: %s", hf)
+		}
+	}
 	return nil
 }
 
