@@ -23,7 +23,7 @@ func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
 	return BuildStateProof(pr.executionClient, pr.chain.Config().IBCAddress(), path, height)
 }
 
-func BuildAccountUpdate(executionClient *client.ETHClient, address common.Address, blockNumber uint64, ) (*lctypes.AccountUpdate, error) {
+func BuildAccountUpdate(executionClient *client.ETHClient, address common.Address, blockNumber uint64) (*lctypes.AccountUpdate, error) {
 	proof, err := executionClient.GetProof(
 		address,
 		nil,
