@@ -12,10 +12,15 @@ import (
 
 type Client struct {
 	endpoint string
+	strict   bool
+}
+
+func NewClientWithStrict(endpoint string, strict bool) Client {
+	return Client{endpoint: endpoint, strict: strict}
 }
 
 func NewClient(endpoint string) Client {
-	return Client{endpoint: endpoint}
+	return NewClientWithStrict(endpoint, true)
 }
 
 func (Client) SupportedVersion() string {
@@ -57,7 +62,7 @@ func (cl Client) GetBootstrap(finalizedRoot []byte) (*LightClientBootstrapRespon
 	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/light_client/bootstrap/0x%v", hex.EncodeToString(finalizedRoot[:])), &res); err != nil {
 		return nil, err
 	}
-	if res.Version != cl.SupportedVersion() {
+	if cl.strict && res.Version != cl.SupportedVersion() {
 		return nil, fmt.Errorf("unsupported version: %v", res.Version)
 	}
 	return &res, nil
@@ -68,11 +73,11 @@ func (cl Client) GetLightClientUpdates(period uint64, count uint64) (LightClient
 	if err := cl.get(fmt.Sprintf("/eth/v1/beacon/light_client/updates?start_period=%v&count=%v", period, count), &res); err != nil {
 		return nil, err
 	}
-	if len(res) != int(count) {
+	if cl.strict && len(res) != int(count) {
 		return nil, fmt.Errorf("unexpected response length: expected=%v actual=%v", count, len(res))
 	}
 	for i := range res {
-		if res[i].Version != cl.SupportedVersion() {
+		if cl.strict && res[i].Version != cl.SupportedVersion() {
 			return nil, fmt.Errorf("unsupported version: %v", res[i].Version)
 		}
 	}
@@ -92,7 +97,7 @@ func (cl Client) GetLightClientFinalityUpdate() (*LightClientFinalityUpdateRespo
 	if err := cl.get("/eth/v1/beacon/light_client/finality_update", &res); err != nil {
 		return nil, err
 	}
-	if res.Version != cl.SupportedVersion() {
+	if cl.strict && res.Version != cl.SupportedVersion() {
 		return nil, fmt.Errorf("unsupported version: %v", res.Version)
 	}
 	return &res, nil

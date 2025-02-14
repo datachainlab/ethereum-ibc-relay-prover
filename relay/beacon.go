@@ -33,27 +33,15 @@ const (
 )
 
 func (pr *Prover) secondsPerSlot() uint64 {
-	if pr.config.IsMainnetPreset() {
-		return MAINNET_SECONDS_PER_SLOT
-	} else {
-		return MINIMAL_SECONDS_PER_SLOT
-	}
+	return SecondsPerSlot(pr.config.IsMainnetPreset())
 }
 
 func (pr *Prover) slotsPerEpoch() uint64 {
-	if pr.config.IsMainnetPreset() {
-		return MAINNET_SLOTS_PER_EPOCH
-	} else {
-		return MINIMAL_SLOTS_PER_EPOCH
-	}
+	return SlotsPerEpoch(pr.config.IsMainnetPreset())
 }
 
 func (pr *Prover) epochsPerSyncCommitteePeriod() uint64 {
-	if pr.config.IsMainnetPreset() {
-		return MAINNET_EPOCHS_PER_SYNC_COMMITTEE_PERIOD
-	} else {
-		return MINIMAL_EPOCHS_PER_SYNC_COMMITTEE_PERIOD
-	}
+	return EpochsPerSyncCommitteePeriod(pr.config.IsMainnetPreset())
 }
 
 // returns the first slot of the period
@@ -97,6 +85,34 @@ func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
 }
 
 func (pr *Prover) buildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
+	return BuildExecutionUpdate(executionHeader)
+}
+
+func SecondsPerSlot(isMainnetPreset bool) uint64 {
+	if isMainnetPreset {
+		return MAINNET_SECONDS_PER_SLOT
+	} else {
+		return MINIMAL_SECONDS_PER_SLOT
+	}
+}
+
+func SlotsPerEpoch(isMainnetPreset bool) uint64 {
+	if isMainnetPreset {
+		return MAINNET_SLOTS_PER_EPOCH
+	} else {
+		return MINIMAL_SLOTS_PER_EPOCH
+	}
+}
+
+func EpochsPerSyncCommitteePeriod(isMainnetPreset bool) uint64 {
+	if isMainnetPreset {
+		return MAINNET_EPOCHS_PER_SYNC_COMMITTEE_PERIOD
+	} else {
+		return MINIMAL_EPOCHS_PER_SYNC_COMMITTEE_PERIOD
+	}
+}
+
+func BuildExecutionUpdate(executionHeader *beacon.ExecutionPayloadHeader) (*lctypes.ExecutionUpdate, error) {
 	stateRootBranch, err := generateExecutionPayloadHeaderProof(executionHeader, EXECUTION_STATE_ROOT_LEAF_INDEX)
 	if err != nil {
 		return nil, err

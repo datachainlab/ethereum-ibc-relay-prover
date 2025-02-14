@@ -107,18 +107,26 @@ func (prc *ProverConfig) GetMaxClockDrift() time.Duration {
 
 // NOTE the prover supports only the mainnet and minimal preset for now
 func (prc *ProverConfig) IsMainnetPreset() bool {
-	switch prc.Network {
+	return IsMainnetPreset(prc.Network)
+}
+
+func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
+	return GetForkParameters(prc.Network)
+}
+
+func IsMainnetPreset(network string) bool {
+	switch network {
 	case Mainnet, Goerli, Sepolia:
 		return true
 	case Minimal:
 		return false
 	default:
-		panic(fmt.Sprintf("unknown network: %v", prc.Network))
+		panic(fmt.Sprintf("unknown network: %v", network))
 	}
 }
 
-func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
-	switch prc.Network {
+func GetForkParameters(network string) *lctypes.ForkParameters {
+	switch network {
 	case Mainnet:
 		return &lctypes.ForkParameters{
 			GenesisForkVersion: []byte{0, 0, 0, 0},
@@ -224,6 +232,6 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 			},
 		}
 	default:
-		panic(fmt.Sprintf("unknown network: %v", prc.Network))
+		panic(fmt.Sprintf("unknown network: %v", network))
 	}
 }
