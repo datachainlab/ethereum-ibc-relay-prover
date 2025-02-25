@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
@@ -84,7 +85,7 @@ func (pr *Prover) getSlotAtTimestamp(timestamp uint64) (uint64, error) {
 
 // returns a period corresponding to a given execution block number
 func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
-	timestamp, err := pr.chain.Timestamp(pr.newHeight(int64(blockNumber)))
+	timestamp, err := pr.chain.Timestamp(context.TODO(), pr.newHeight(int64(blockNumber)))
 	if err != nil {
 		return 0, err
 	}
