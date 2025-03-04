@@ -70,7 +70,7 @@ func (pr *Prover) computeEpoch(slot uint64) uint64 {
 }
 
 func (pr *Prover) getSlotAtTimestamp(timestamp uint64) (uint64, error) {
-	genesis, err := pr.beaconClient.GetGenesis()
+	genesis, err := pr.beaconClient.GetGenesis(context.TODO())
 	if err != nil {
 		return 0, err
 	}

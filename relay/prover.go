@@ -153,7 +153,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 	if statePeriod == latestPeriod {
 		latestHeight := cs.GetLatestHeight().(clienttypes.Height)
-		res, err := pr.beaconClient.GetLightClientUpdate(statePeriod)
+		res, err := pr.beaconClient.GetLightClientUpdate(context.TODO(), statePeriod)
 		if err != nil {
 			return nil, fmt.Errorf("failed to get LightClientUpdate: state_period=%v %v", statePeriod, err)
 		}
@@ -161,7 +161,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		if err != nil {
 			return nil, fmt.Errorf("failed to calculate hash tree root: %v", err)
 		}
-		bootstrapRes, err := pr.beaconClient.GetBootstrap(root[:])
+		bootstrapRes, err := pr.beaconClient.GetBootstrap(context.TODO(), root[:])
 		if err != nil {
 			return nil, fmt.Errorf("failed to get bootstrap: root=%x %v", root, err)
 		}
@@ -184,7 +184,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		trustedHeight               = cs.GetLatestHeight().(clienttypes.Height)
 	)
 	pr.GetLogger().Debug("setup headers for updating the light-client", "state_period", statePeriod, "latest_period", latestPeriod, "client_state_latest_height", cs.GetLatestHeight().GetRevisionHeight())
-	res, err := pr.beaconClient.GetLightClientUpdate(statePeriod)
+	res, err := pr.beaconClient.GetLightClientUpdate(context.TODO(), statePeriod)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LightClientUpdate: state_period=%v %v", statePeriod, err)
 	}
@@ -220,7 +220,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 
 // if `blockNumber` is 0, the latest block number is used
 func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
-	res, err := pr.beaconClient.GetLightClientFinalityUpdate()
+	res, err := pr.beaconClient.GetLightClientFinalityUpdate(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get light-client finality update: %v", err)
 	}
@@ -256,11 +256,11 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 	}
 	var accountStorageRoot [32]byte
 	copy(accountStorageRoot[:], accountUpdate.AccountStorageRoot)
-	genesis, err := pr.beaconClient.GetGenesis()
+	genesis, err := pr.beaconClient.GetGenesis(context.TODO())
 	if err != nil {
 		return nil, fmt.Errorf("failed to get genesis: %v", err)
 	}
-	res2, err := pr.beaconClient.GetLightClientUpdate(period)
+	res2, err := pr.beaconClient.GetLightClientUpdate(context.TODO(), period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LightClientUpdate: period=%v %v", period, err)
 	}
@@ -279,7 +279,7 @@ func (pr *Prover) buildInitialState(blockNumber uint64) (*InitialState, error) {
 // buildLatestFinalizedHeader returns the latest finalized header on this chain
 // The returned header is expected to be the latest one of headers that can be verified by the light client
 func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (headers core.Header, err error) {
-	res, err := pr.beaconClient.GetLightClientFinalityUpdate()
+	res, err := pr.beaconClient.GetLightClientFinalityUpdate(context.TODO())
 	if err != nil {
 		return nil, err
 	}
@@ -396,13 +396,13 @@ func (pr *Prover) getBootstrapInPeriod(period uint64) (*lctypes.SyncCommittee, e
 	pr.GetLogger().Debug("get bootstrap in period", "period", period, "start_slot", startSlot, "last_slot_in_period", lastSlotInPeriod, "slots_per_epoch", slotsPerEpoch)
 	var errs []error
 	for i := startSlot + slotsPerEpoch; i <= lastSlotInPeriod; i += slotsPerEpoch {
-		res, err := pr.beaconClient.GetBlockRoot(i, false)
+		res, err := pr.beaconClient.GetBlockRoot(context.TODO(), i, false)
 		if err != nil {
 			pr.GetLogger().Warn("failed to get block root", "slot", i, "err", err)
 			errs = append(errs, err)
 			return nil, fmt.Errorf("there is no available bootstrap in period: period=%v err=%v", period, errors.Join(errs...))
 		}
-		bootstrap, err := pr.beaconClient.GetBootstrap(res.Data.Root[:])
+		bootstrap, err := pr.beaconClient.GetBootstrap(context.TODO(), res.Data.Root[:])
 		if err != nil {
 			pr.GetLogger().Warn("failed to get bootstrap", "root", res.Data.Root[:], "err", err)
 			errs = append(errs, err)
@@ -415,7 +415,7 @@ func (pr *Prover) getBootstrapInPeriod(period uint64) (*lctypes.SyncCommittee, e
 }
 
 func (pr *Prover) buildNextSyncCommitteeUpdate(period uint64, trustedHeight clienttypes.Height, trustedNextSyncCommittee *lctypes.SyncCommittee) (*lctypes.Header, error) {
-	res, err := pr.beaconClient.GetLightClientUpdate(period)
+	res, err := pr.beaconClient.GetLightClientUpdate(context.TODO(), period)
 	if err != nil {
 		return nil, err
 	}
