@@ -9,9 +9,9 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate, error) {
+func (pr *Prover) buildAccountUpdate(ctx context.Context, blockNumber uint64) (*lctypes.AccountUpdate, error) {
 	proof, err := pr.executionClient.GetProof(
-		context.TODO(),
+		ctx,
 		pr.chain.Config().IBCAddress(),
 		nil,
 		big.NewInt(int64(blockNumber)),
@@ -26,7 +26,7 @@ func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate
 	}, nil
 }
 
-func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
+func (pr *Prover) buildStateProof(ctx context.Context, path []byte, height int64) ([]byte, error) {
 	// calculate slot for commitment
 	storageKey := crypto.Keccak256Hash(append(
 		crypto.Keccak256Hash(path).Bytes(),
@@ -39,7 +39,7 @@ func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
 
 	// call eth_getProof
 	stateProof, err := pr.executionClient.GetProof(
-		context.TODO(),
+		ctx,
 		pr.chain.Config().IBCAddress(),
 		[][]byte{storageKeyHex},
 		big.NewInt(height),
