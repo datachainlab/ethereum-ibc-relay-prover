@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"context"
 	"encoding/hex"
 	"math/big"
 
@@ -10,6 +11,7 @@ import (
 
 func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate, error) {
 	proof, err := pr.executionClient.GetProof(
+		context.TODO(),
 		pr.chain.Config().IBCAddress(),
 		nil,
 		big.NewInt(int64(blockNumber)),
@@ -37,6 +39,7 @@ func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
 
 	// call eth_getProof
 	stateProof, err := pr.executionClient.GetProof(
+		context.TODO(),
 		pr.chain.Config().IBCAddress(),
 		[][]byte{storageKeyHex},
 		big.NewInt(height),

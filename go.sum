@@ -402,8 +402,8 @@ github.com/d4l3k/messagediff v1.2.1 h1:ZcAIMYsUg0EAp9X+tt8/enBE/Q8Yd5kzPynLyKptt
 github.com/d4l3k/messagediff v1.2.1/go.mod h1:Oozbb1TVXFac9FtSIxHBMnBCq2qeH/2KkEQxENCrlLo=
 github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuAyr0=
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=
-github.com/datachainlab/ethereum-ibc-relay-chain v0.3.16 h1:C4xwZ1Pq5O+ITjP5UphpwThtTHnWiTe0V4pckEvqfwI=
-github.com/datachainlab/ethereum-ibc-relay-chain v0.3.16/go.mod h1:sf+ti1uM1joxhukxIyj8oDQ5yf7d+e+nl+3vtn9f5CM=
+github.com/datachainlab/ethereum-ibc-relay-chain v0.3.17 h1:oyDLIbc9hyp31c3OoIB5wHm51tpyDrYAu1KBA1KxfEw=
+github.com/datachainlab/ethereum-ibc-relay-chain v0.3.17/go.mod h1:sf+ti1uM1joxhukxIyj8oDQ5yf7d+e+nl+3vtn9f5CM=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.1/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
 github.com/davecgh/go-spew v1.1.2-0.20180830191138-d8f796af33cc h1:U9qPSI2PIWSS1VwoXQT9A3Wy9MM3WgvqSxFWenqJduM=
