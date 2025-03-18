@@ -15,12 +15,11 @@ import (
 var SupportedVersions = []string{"deneb", "electra"}
 
 type Client struct {
-	endpoint   string
-	httpClient *http.Client
+	endpoint string
 }
 
 func NewClient(endpoint string) Client {
-	return Client{endpoint: endpoint, httpClient: &http.Client{}}
+	return Client{endpoint: endpoint}
 }
 
 func IsSupportedVersion(v string) bool {
@@ -110,7 +109,7 @@ func (cl Client) get(ctx context.Context, path string, res any) error {
 		return err
 	}
 
-	r, err := cl.httpClient.Do(req)
+	r, err := http.DefaultClient.Do(req)
 	if err != nil {
 		return err
 	}
