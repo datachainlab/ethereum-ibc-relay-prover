@@ -69,8 +69,8 @@ func (pr *Prover) computeEpoch(slot uint64) uint64 {
 	return slot / pr.slotsPerEpoch()
 }
 
-func (pr *Prover) getSlotAtTimestamp(timestamp uint64) (uint64, error) {
-	genesis, err := pr.beaconClient.GetGenesis()
+func (pr *Prover) getSlotAtTimestamp(ctx context.Context, timestamp uint64) (uint64, error) {
+	genesis, err := pr.beaconClient.GetGenesis(ctx)
 	if err != nil {
 		return 0, err
 	}
@@ -84,12 +84,12 @@ func (pr *Prover) getSlotAtTimestamp(timestamp uint64) (uint64, error) {
 }
 
 // returns a period corresponding to a given execution block number
-func (pr *Prover) getPeriodWithBlockNumber(blockNumber uint64) (uint64, error) {
-	timestamp, err := pr.chain.Timestamp(context.TODO(), pr.newHeight(int64(blockNumber)))
+func (pr *Prover) getPeriodWithBlockNumber(ctx context.Context, blockNumber uint64) (uint64, error) {
+	timestamp, err := pr.chain.Timestamp(ctx, pr.newHeight(int64(blockNumber)))
 	if err != nil {
 		return 0, err
 	}
-	slot, err := pr.getSlotAtTimestamp(uint64(timestamp.Unix()))
+	slot, err := pr.getSlotAtTimestamp(ctx, uint64(timestamp.Unix()))
 	if err != nil {
 		return 0, err
 	}
