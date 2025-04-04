@@ -13,6 +13,7 @@ message ProverConfig {
   string trusting_period = 3;
   string max_clock_drift = 4;
   Fraction refresh_threshold_rate = 5;
+  map<string, uint64> minimal_fork_sched = 6;
 }
 
 message Fraction {

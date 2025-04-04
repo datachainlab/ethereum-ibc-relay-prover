@@ -12,13 +12,20 @@ import (
 const (
 	Mainnet = "mainnet"
 	Minimal = "minimal"
-	Goerli  = "goerli"
 	Sepolia = "sepolia"
 )
 
 const (
 	MAINNET_PRESET_SYNC_COMMITTEE_SIZE = 512
 	MINIMAL_PRESET_SYNC_COMMITTEE_SIZE = 32
+)
+
+const (
+	Altair    = "altair"
+	Bellatrix = "bellatrix"
+	Capella   = "capella"
+	Deneb     = "deneb"
+	Electra   = "electra"
 )
 
 var (
@@ -45,6 +52,14 @@ var (
 		ExecutionPayloadStateRootGindex:   34,
 		ExecutionPayloadBlockNumberGindex: 38,
 		ExecutionPayloadBlockHashGindex:   44,
+	}
+	ElectraSpec = lctypes.ForkSpec{
+		FinalizedRootGindex:               169,
+		CurrentSyncCommitteeGindex:        86,
+		NextSyncCommitteeGindex:           87,
+		ExecutionPayloadGindex:            DenebSpec.ExecutionPayloadGindex,
+		ExecutionPayloadStateRootGindex:   DenebSpec.ExecutionPayloadStateRootGindex,
+		ExecutionPayloadBlockNumberGindex: DenebSpec.ExecutionPayloadBlockNumberGindex,
 	}
 )
 
@@ -88,6 +103,14 @@ func (prc ProverConfig) Validate() error {
 	if prc.RefreshThresholdRate.Numerator > prc.RefreshThresholdRate.Denominator {
 		return fmt.Errorf("config attribute \"refresh_threshold_rate\" must be less than or equal to 1.0: actual=%v/%v", prc.RefreshThresholdRate.Numerator, prc.RefreshThresholdRate.Denominator)
 	}
+	for hf := range prc.MinimalForkSched {
+		switch hf {
+		case Altair, Bellatrix, Capella, Deneb, Electra:
+			// OK
+		default:
+			return fmt.Errorf("config attribute \"minimal_fork_sched\" contains an unknown key: %s", hf)
+		}
+	}
 	return nil
 }
 
@@ -113,12 +136,12 @@ func (prc *ProverConfig) IsMainnetPreset() bool {
 }
 
 func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
-	return GetForkParameters(prc.Network)
+	return GetForkParameters(prc.Network, prc.MinimalForkSched)
 }
 
 func IsMainnetPreset(network string) bool {
 	switch network {
-	case Mainnet, Goerli, Sepolia:
+	case Mainnet, Sepolia:
 		return true
 	case Minimal:
 		return false
@@ -127,7 +150,7 @@ func IsMainnetPreset(network string) bool {
 	}
 }
 
-func GetForkParameters(network string) *lctypes.ForkParameters {
+func GetForkParameters(network string, minimalForkSched map[string]uint64) *lctypes.ForkParameters {
 	switch network {
 	case Mainnet:
 		return &lctypes.ForkParameters{
@@ -161,49 +184,28 @@ func GetForkParameters(network string) *lctypes.ForkParameters {
 			Forks: []*lctypes.Fork{
 				{
 					Version: []byte{1, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   minimalForkSched[Altair],
 					Spec:    &AltairSpec,
 				},
 				{
 					Version: []byte{2, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   minimalForkSched[Bellatrix],
 					Spec:    &BellatrixSpec,
 				},
 				{
 					Version: []byte{3, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   minimalForkSched[Capella],
 					Spec:    &CapellaSpec,
 				},
 				{
 					Version: []byte{4, 0, 0, 1},
-					Epoch:   0,
+					Epoch:   minimalForkSched[Deneb],
 					Spec:    &DenebSpec,
 				},
-			},
-		}
-	case Goerli:
-		return &lctypes.ForkParameters{
-			GenesisForkVersion: []byte{0, 0, 16, 32},
-			Forks: []*lctypes.Fork{
 				{
-					Version: []byte{1, 0, 16, 32},
-					Epoch:   36660,
-					Spec:    &AltairSpec,
-				},
-				{
-					Version: []byte{2, 0, 16, 32},
-					Epoch:   112260,
-					Spec:    &BellatrixSpec,
-				},
-				{
-					Version: []byte{3, 0, 16, 32},
-					Epoch:   162304,
-					Spec:    &CapellaSpec,
-				},
-				{
-					Version: []byte{4, 0, 16, 32},
-					Epoch:   231680,
-					Spec:    &DenebSpec,
+					Version: []byte{5, 0, 0, 1},
+					Epoch:   minimalForkSched[Electra],
+					Spec:    &ElectraSpec,
 				},
 			},
 		}
@@ -230,6 +232,11 @@ func GetForkParameters(network string) *lctypes.ForkParameters {
 					Version: []byte{144, 0, 0, 115},
 					Epoch:   132608,
 					Spec:    &DenebSpec,
+				},
+				{
+					Version: []byte{144, 0, 0, 116},
+					Epoch:   222464,
+					Spec:    &ElectraSpec,
 				},
 			},
 		}

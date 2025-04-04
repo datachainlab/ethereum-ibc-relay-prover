@@ -1,6 +1,7 @@
 package relay
 
 import (
+	"context"
 	"encoding/hex"
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/client"
 	"github.com/ethereum/go-ethereum/common"
@@ -10,8 +11,8 @@ import (
 	"github.com/ethereum/go-ethereum/crypto"
 )
 
-func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate, error) {
-	result, err := BuildAccountUpdate(pr.executionClient, pr.chain.Config().IBCAddress(), blockNumber)
+func (pr *Prover) buildAccountUpdate(ctx context.Context, blockNumber uint64) (*lctypes.AccountUpdate, error) {
+	result, err := BuildAccountUpdate(ctx, pr.executionClient, pr.chain.Config().IBCAddress(), blockNumber)
 	if err != nil {
 		return nil, err
 	}
@@ -19,12 +20,13 @@ func (pr *Prover) buildAccountUpdate(blockNumber uint64) (*lctypes.AccountUpdate
 	return result, nil
 }
 
-func (pr *Prover) buildStateProof(path []byte, height int64) ([]byte, error) {
-	return BuildStateProof(pr.executionClient, pr.chain.Config().IBCAddress(), path, height)
+func (pr *Prover) buildStateProof(ctx context.Context, path []byte, height int64) ([]byte, error) {
+	return BuildStateProof(ctx, pr.executionClient, pr.chain.Config().IBCAddress(), path, height)
 }
 
-func BuildAccountUpdate(executionClient *client.ETHClient, address common.Address, blockNumber uint64) (*lctypes.AccountUpdate, error) {
+func BuildAccountUpdate(ctx context.Context, executionClient *client.ETHClient, address common.Address, blockNumber uint64) (*lctypes.AccountUpdate, error) {
 	proof, err := executionClient.GetProof(
+		ctx,
 		address,
 		nil,
 		big.NewInt(int64(blockNumber)),
@@ -38,7 +40,7 @@ func BuildAccountUpdate(executionClient *client.ETHClient, address common.Addres
 	}, nil
 }
 
-func BuildStateProof(executionClient *client.ETHClient, address common.Address, path []byte, height int64) ([]byte, error) {
+func BuildStateProof(ctx context.Context, executionClient *client.ETHClient, address common.Address, path []byte, height int64) ([]byte, error) {
 	// calculate slot for commitment
 	storageKey := crypto.Keccak256Hash(append(
 		crypto.Keccak256Hash(path).Bytes(),
@@ -51,6 +53,7 @@ func BuildStateProof(executionClient *client.ETHClient, address common.Address, 
 
 	// call eth_getProof
 	stateProof, err := executionClient.GetProof(
+		ctx,
 		address,
 		[][]byte{storageKeyHex},
 		big.NewInt(height),
