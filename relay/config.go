@@ -166,6 +166,11 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Epoch:   269568,
 					Spec:    &DenebSpec,
 				},
+				{
+					Version: []byte{5, 0, 0, 0},
+					Epoch:   364032,
+					Spec:    &ElectraSpec,
+				},
 			},
 		}
 	case Minimal:
