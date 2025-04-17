@@ -12,7 +12,6 @@ import (
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	ibcexported "github.com/cosmos/ibc-go/v8/modules/core/exported"
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/client"
-	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/relay/ethereum"
 	"github.com/datachainlab/ethereum-ibc-relay-prover/beacon"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 	"github.com/ethereum/go-ethereum/common"
@@ -23,16 +22,23 @@ import (
 var IBCCommitmentsSlot = common.HexToHash("1ee222554989dda120e26ecacf756fe1235cd8d726706b57517715dde4f0c900")
 
 type Prover struct {
-	chain           *ethereum.Chain
+	chain           core.Chain
 	config          ProverConfig
+	ibcAddress      common.Address
 	executionClient *client.ETHClient
 	beaconClient    beacon.Client
 	codec           codec.ProtoCodecMarshaler
 }
 
-func NewProver(chain *ethereum.Chain, config ProverConfig) *Prover {
+func NewProver(chain core.Chain, config ProverConfig, ibcAddress common.Address, executionClient *client.ETHClient) *Prover {
 	beaconClient := beacon.NewClient(config.BeaconEndpoint)
-	return &Prover{chain: chain, config: config, executionClient: chain.Client(), beaconClient: beaconClient}
+	return &Prover{
+		chain:           chain,
+		config:          config,
+		ibcAddress:      ibcAddress,
+		executionClient: executionClient,
+		beaconClient:    beaconClient,
+	}
 }
 
 func (pr *Prover) GetLogger() *log.RelayLogger {
@@ -374,7 +380,7 @@ func (pr *Prover) buildClientState(
 		SlotsPerEpoch:                pr.slotsPerEpoch(),
 		EpochsPerSyncCommitteePeriod: pr.epochsPerSyncCommitteePeriod(),
 
-		IbcAddress:         pr.chain.Config().IBCAddress().Bytes(),
+		IbcAddress:         pr.ibcAddress.Bytes(),
 		IbcCommitmentsSlot: IBCCommitmentsSlot[:],
 		TrustLevel: &lctypes.Fraction{
 			Numerator:   2,
