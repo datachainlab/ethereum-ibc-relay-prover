@@ -10,9 +10,14 @@ import (
 	"slices"
 
 	"github.com/hyperledger-labs/yui-relayer/log"
+	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
 var SupportedVersions = []string{"deneb", "electra"}
+
+var httpClient = &http.Client{
+	Transport: otelhttp.NewTransport(http.DefaultTransport),
+}
 
 type Client struct {
 	endpoint string
@@ -109,7 +114,7 @@ func (cl Client) get(ctx context.Context, path string, res any) error {
 		return err
 	}
 
-	r, err := http.DefaultClient.Do(req)
+	r, err := httpClient.Do(req)
 	if err != nil {
 		return err
 	}
