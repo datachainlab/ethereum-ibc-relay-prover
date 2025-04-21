@@ -108,7 +108,7 @@ func (cl Client) GetLightClientFinalityUpdate(ctx context.Context) (*LightClient
 }
 
 func (cl Client) get(ctx context.Context, path string, res any) error {
-	log.GetLogger().Debug("Beacon API request", "endpoint", cl.endpoint+path)
+	log.GetLogger().DebugContext(ctx, "Beacon API request", "endpoint", cl.endpoint+path)
 	req, err := http.NewRequestWithContext(ctx, "GET", cl.endpoint+path, nil)
 	if err != nil {
 		return err

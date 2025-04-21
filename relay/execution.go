@@ -19,7 +19,7 @@ func (pr *Prover) buildAccountUpdate(ctx context.Context, blockNumber uint64) (*
 	if err != nil {
 		return nil, err
 	}
-	pr.GetLogger().Info("buildAccountUpdate: get proof", "block_number", blockNumber, "ibc_address", pr.ibcAddress.String(), "account_proof", hex.EncodeToString(proof.AccountProofRLP), "storage_hash", hex.EncodeToString(proof.StorageHash[:]))
+	pr.GetLogger().InfoContext(ctx, "buildAccountUpdate: get proof", "block_number", blockNumber, "ibc_address", pr.ibcAddress.String(), "account_proof", hex.EncodeToString(proof.AccountProofRLP), "storage_hash", hex.EncodeToString(proof.StorageHash[:]))
 	return &lctypes.AccountUpdate{
 		AccountProof:       proof.AccountProofRLP,
 		AccountStorageRoot: proof.StorageHash[:],

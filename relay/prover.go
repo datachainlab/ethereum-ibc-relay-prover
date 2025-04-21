@@ -88,7 +88,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibce
 	if err != nil {
 		return nil, nil, err
 	}
-	pr.GetLogger().Debug("InitialState", "initial_state", initialState)
+	pr.GetLogger().DebugContext(ctx, "InitialState", "initial_state", initialState)
 	committeeSize := len(initialState.CurrentSyncCommittee.Pubkeys)
 	if pr.config.IsMainnetPreset() {
 		if committeeSize != MAINNET_PRESET_SYNC_COMMITTEE_SIZE {
@@ -131,7 +131,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		return nil, err
 	}
 
-	pr.GetLogger().Debug("query the latest height of the counterparty chain", "latest_height", latestHeight)
+	pr.GetLogger().DebugContext(ctx, "query the latest height of the counterparty chain", "latest_height", latestHeight)
 
 	// retrieve the client state from the counterparty chain
 	counterpartyClientRes, err := counterparty.QueryClientState(core.NewQueryContext(ctx, latestHeight))
@@ -155,7 +155,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	}
 	latestPeriod := pr.computeSyncCommitteePeriod(pr.computeEpoch(lfh.ConsensusUpdate.SignatureSlot))
 
-	pr.GetLogger().Debug("try to setup headers for updating the light-client", "lc_latest_height", cs.GetLatestHeight(), "lc_latest_height_period", statePeriod, "latest_period", latestPeriod)
+	pr.GetLogger().DebugContext(ctx, "try to setup headers for updating the light-client", "lc_latest_height", cs.GetLatestHeight(), "lc_latest_height_period", statePeriod, "latest_period", latestPeriod)
 
 	if statePeriod == latestPeriod {
 		latestHeight := cs.GetLatestHeight().(clienttypes.Height)
@@ -189,7 +189,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		trustedCurrentSyncCommittee *lctypes.SyncCommittee
 		trustedHeight               = cs.GetLatestHeight().(clienttypes.Height)
 	)
-	pr.GetLogger().Debug("setup headers for updating the light-client", "state_period", statePeriod, "latest_period", latestPeriod, "client_state_latest_height", cs.GetLatestHeight().GetRevisionHeight())
+	pr.GetLogger().DebugContext(ctx, "setup headers for updating the light-client", "state_period", statePeriod, "latest_period", latestPeriod, "client_state_latest_height", cs.GetLatestHeight().GetRevisionHeight())
 	res, err := pr.beaconClient.GetLightClientUpdate(ctx, statePeriod)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get LightClientUpdate: state_period=%v %v", statePeriod, err)
@@ -200,7 +200,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		if err != nil {
 			return nil, fmt.Errorf("failed to build next sync committee update for next: period=%v trusted_height=%v %v", p, trustedHeight, err)
 		}
-		pr.GetLogger().Debug("setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
+		pr.GetLogger().DebugContext(ctx, "setup intermediate header for updating the light-client", "period", p, "trusted_height", header.TrustedSyncCommittee.TrustedHeight, "trusted_sync_committee", fmt.Sprintf("0x%x", header.TrustedSyncCommittee.SyncCommittee.AggregatePubkey), "is_next", header.TrustedSyncCommittee.IsNext, "untrusted_execution_block_number", header.ExecutionUpdate.BlockNumber, "next_sync_committee", fmt.Sprintf("0x%x", header.ConsensusUpdate.NextSyncCommittee.AggregatePubkey))
 		trustedHeight = clienttypes.NewHeight(0, header.ExecutionUpdate.BlockNumber)
 		trustedCurrentSyncCommittee = trustedNextSyncCommittee
 		trustedNextSyncCommittee = header.ConsensusUpdate.NextSyncCommittee
@@ -212,7 +212,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	if trustedHeight.GT(lfh.GetHeight()) {
 		return nil, fmt.Errorf("the latest finalized header is older than the trusted height: finalized_block_number=%v trusted_block_number=%v", lfh.GetHeight().GetRevisionHeight(), trustedHeight.GetRevisionHeight())
 	} else if trustedHeight.EQ(lfh.GetHeight()) {
-		pr.GetLogger().Debug("the latest finalized header is the same as the trusted height", "finalized_block_number", lfh.GetHeight().GetRevisionHeight(), "trusted_block_number", trustedHeight.GetRevisionHeight())
+		pr.GetLogger().DebugContext(ctx, "the latest finalized header is the same as the trusted height", "finalized_block_number", lfh.GetHeight().GetRevisionHeight(), "trusted_block_number", trustedHeight.GetRevisionHeight())
 		return headers, nil
 	}
 	lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
@@ -251,7 +251,7 @@ func (pr *Prover) buildInitialState(ctx context.Context, blockNumber uint64) (*I
 
 	period := pr.computeSyncCommitteePeriod(pr.computeEpoch(slot))
 
-	pr.GetLogger().Info("build initial state", "slot", slot, "block_number", blockNumber, "period", period)
+	pr.GetLogger().InfoContext(ctx, "build initial state", "slot", slot, "block_number", blockNumber, "period", period)
 	currentSyncCommittee, err := pr.getBootstrapInPeriod(ctx, period)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get bootstrap in period %v: %v", period, err)
@@ -307,7 +307,7 @@ func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (headers core.He
 	if err != nil {
 		return nil, fmt.Errorf("failed to build account update: %v", err)
 	}
-	pr.GetLogger().Info("build latest finalized header", "block_number", executionHeader.BlockNumber, "timestamp", executionHeader.Timestamp, "state_root", hex.EncodeToString(executionHeader.StateRoot))
+	pr.GetLogger().InfoContext(ctx, "build latest finalized header", "block_number", executionHeader.BlockNumber, "timestamp", executionHeader.Timestamp, "state_root", hex.EncodeToString(executionHeader.StateRoot))
 	return &lctypes.Header{
 		ConsensusUpdate: lcUpdate,
 		ExecutionUpdate: executionUpdate,
@@ -399,18 +399,18 @@ func (pr *Prover) getBootstrapInPeriod(ctx context.Context, period uint64) (*lct
 	slotsPerEpoch := pr.slotsPerEpoch()
 	startSlot := pr.getPeriodBoundarySlot(period)
 	lastSlotInPeriod := pr.getPeriodBoundarySlot(period+1) - 1
-	pr.GetLogger().Debug("get bootstrap in period", "period", period, "start_slot", startSlot, "last_slot_in_period", lastSlotInPeriod, "slots_per_epoch", slotsPerEpoch)
+	pr.GetLogger().DebugContext(ctx, "get bootstrap in period", "period", period, "start_slot", startSlot, "last_slot_in_period", lastSlotInPeriod, "slots_per_epoch", slotsPerEpoch)
 	var errs []error
 	for i := startSlot + slotsPerEpoch; i <= lastSlotInPeriod; i += slotsPerEpoch {
 		res, err := pr.beaconClient.GetBlockRoot(ctx, i, false)
 		if err != nil {
-			pr.GetLogger().Warn("failed to get block root", "slot", i, "err", err)
+			pr.GetLogger().WarnContext(ctx, "failed to get block root", "slot", i, "err", err)
 			errs = append(errs, err)
 			return nil, fmt.Errorf("there is no available bootstrap in period: period=%v err=%v", period, errors.Join(errs...))
 		}
 		bootstrap, err := pr.beaconClient.GetBootstrap(ctx, res.Data.Root[:])
 		if err != nil {
-			pr.GetLogger().Warn("failed to get bootstrap", "root", res.Data.Root[:], "err", err)
+			pr.GetLogger().WarnContext(ctx, "failed to get bootstrap", "root", res.Data.Root[:], "err", err)
 			errs = append(errs, err)
 			continue
 		} else {
