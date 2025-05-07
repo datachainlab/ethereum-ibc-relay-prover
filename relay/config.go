@@ -7,6 +7,7 @@ import (
 	"github.com/datachainlab/ethereum-ibc-relay-chain/pkg/relay/ethereum"
 	lctypes "github.com/datachainlab/ethereum-ibc-relay-prover/light-clients/ethereum/types"
 	"github.com/hyperledger-labs/yui-relayer/core"
+	"github.com/hyperledger-labs/yui-relayer/otelcore"
 )
 
 const (
@@ -64,14 +65,15 @@ var (
 var _ core.ProverConfig = (*ProverConfig)(nil)
 
 func (prc ProverConfig) Build(chain core.Chain) (core.Prover, error) {
-	ec, ok := chain.(*ethereum.Chain)
-	if !ok {
-		return nil, fmt.Errorf("expected chain type is %T, but got %T", &ethereum.Chain{}, chain)
+	var ec *ethereum.Chain
+	if err := core.AsChain(chain, &ec); err != nil {
+		return nil, err
 	}
 	if err := prc.Validate(); err != nil {
 		return nil, err
 	}
-	return NewProver(ec, prc), nil
+	// Use chain, not ec, for the case where the chain is a tracing bridge
+	return otelcore.NewProver(NewProver(chain, prc, ec.Config().IBCAddress(), ec.Client()), chain.ChainID(), tracer), nil
 }
 
 func (prc ProverConfig) Validate() error {
