@@ -2,7 +2,7 @@ module github.com/datachainlab/ethereum-ibc-relay-prover
 
 go 1.22.0
 
-replace github.com/hyperledger-labs/yui-relayer => github.com/hyperledger-labs/yui-relayer v0.5.14-0.20250528170243-a65bfd516bb9
+replace github.com/hyperledger-labs/yui-relayer => github.com/hyperledger-labs/yui-relayer v0.5.14-0.20250529093019-420ac95bb98a
 
 require (
 	cosmossdk.io/store v1.0.2
