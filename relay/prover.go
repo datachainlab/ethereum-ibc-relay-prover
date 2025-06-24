@@ -117,7 +117,7 @@ func (pr *Prover) CreateInitialLightClientState(ctx context.Context, height ibce
 // SetupHeadersForUpdate returns the finalized header and any intermediate headers needed to apply it to the client on the counterparty chain
 // The order of the returned header slice should be as: [<intermediate headers>..., <update header>]
 // if the header slice's length == 0 and err == nil, the relayer should skip the update-client
-func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) ([]core.Header, error) {
+func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.FinalityAwareChain, latestFinalizedHeader core.Header) (<-chan *core.HeaderOrError, error) {
 	lfh, ok := latestFinalizedHeader.(*lctypes.Header)
 	if !ok {
 		return nil, fmt.Errorf("unexpected header type: %T", latestFinalizedHeader)
@@ -144,7 +144,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 	}
 
 	if cs.GetLatestHeight().GetRevisionHeight() == lfh.ExecutionUpdate.BlockNumber {
-		return nil, nil
+		return core.MakeHeaderStream(), nil
 	} else if cs.GetLatestHeight().GetRevisionHeight() > lfh.ExecutionUpdate.BlockNumber {
 		return nil, fmt.Errorf("the latest finalized header is older than the latest height of client state: finalized_block_number=%v client_latest_height=%v", lfh.ExecutionUpdate.BlockNumber, cs.GetLatestHeight().GetRevisionHeight())
 	}
@@ -176,7 +176,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 			SyncCommittee: bootstrapRes.Data.CurrentSyncCommittee.ToProto(),
 			IsNext:        false,
 		}
-		return []core.Header{lfh}, nil
+		return core.MakeHeaderStream(lfh), nil
 	} else if statePeriod > latestPeriod {
 		return nil, fmt.Errorf("the light-client server's response is old: client_state_period=%v latest_finalized_period=%v", statePeriod, latestPeriod)
 	}
@@ -213,7 +213,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		return nil, fmt.Errorf("the latest finalized header is older than the trusted height: finalized_block_number=%v trusted_block_number=%v", lfh.GetHeight().GetRevisionHeight(), trustedHeight.GetRevisionHeight())
 	} else if trustedHeight.EQ(lfh.GetHeight()) {
 		pr.GetLogger().DebugContext(ctx, "the latest finalized header is the same as the trusted height", "finalized_block_number", lfh.GetHeight().GetRevisionHeight(), "trusted_block_number", trustedHeight.GetRevisionHeight())
-		return headers, nil
+		return core.MakeHeaderStream(headers...), nil
 	}
 	lfh.TrustedSyncCommittee = &lctypes.TrustedSyncCommittee{
 		TrustedHeight: &trustedHeight,
@@ -221,7 +221,7 @@ func (pr *Prover) SetupHeadersForUpdate(ctx context.Context, counterparty core.F
 		IsNext:        false,
 	}
 	headers = append(headers, lfh)
-	return headers, nil
+	return core.MakeHeaderStream(headers...), nil
 }
 
 // if `blockNumber` is 0, the latest block number is used
