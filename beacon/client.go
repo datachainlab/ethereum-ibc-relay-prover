@@ -13,7 +13,7 @@ import (
 	"go.opentelemetry.io/contrib/instrumentation/net/http/otelhttp"
 )
 
-var SupportedVersions = []string{"deneb", "electra"}
+var SupportedVersions = []string{"deneb", "electra", "fulu"}
 
 var httpClient = &http.Client{
 	Transport: otelhttp.NewTransport(http.DefaultTransport),
