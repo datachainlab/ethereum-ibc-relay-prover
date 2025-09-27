@@ -28,6 +28,7 @@ const (
 	Capella   = "capella"
 	Deneb     = "deneb"
 	Electra   = "electra"
+	Fulu      = "fulu"
 )
 
 var (
@@ -61,6 +62,7 @@ var (
 		ExecutionPayloadStateRootGindex:   DenebSpec.ExecutionPayloadStateRootGindex,
 		ExecutionPayloadBlockNumberGindex: DenebSpec.ExecutionPayloadBlockNumberGindex,
 	}
+	FuluSpec = ElectraSpec
 )
 
 var _ core.ProverConfig = (*ProverConfig)(nil)
@@ -106,7 +108,7 @@ func (prc ProverConfig) Validate() error {
 	}
 	for hf := range prc.MinimalForkSched {
 		switch hf {
-		case Altair, Bellatrix, Capella, Deneb, Electra:
+		case Altair, Bellatrix, Capella, Deneb, Electra, Fulu:
 			// OK
 		default:
 			return fmt.Errorf("config attribute \"minimal_fork_sched\" contains an unknown key: %s", hf)
@@ -204,6 +206,11 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Version: []byte{5, 0, 0, 1},
 					Epoch:   prc.MinimalForkSched[Electra],
 					Spec:    &ElectraSpec,
+				},
+				{
+					Version: []byte{6, 0, 0, 1},
+					Epoch:   prc.MinimalForkSched[Fulu],
+					Spec:    &FuluSpec,
 				},
 			},
 		}
