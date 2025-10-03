@@ -243,6 +243,11 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Epoch:   222464,
 					Spec:    &ElectraSpec,
 				},
+				{
+					Version: []byte{144, 0, 0, 117},
+					Epoch:   272640,
+					Spec:    &FuluSpec,
+				},
 			},
 		}
 	default:
