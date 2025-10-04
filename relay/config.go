@@ -243,6 +243,7 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Epoch:   222464,
 					Spec:    &ElectraSpec,
 				},
+				// The metadata of Fulu Sepolia is from https://github.com/eth-clients/sepolia/blob/f9158732adb1a2a6440613ad2232eb50e7384c4f/metadata/config.yaml#L43-L45
 				{
 					Version: []byte{144, 0, 0, 117},
 					Epoch:   272640,
