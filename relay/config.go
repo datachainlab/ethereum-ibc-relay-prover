@@ -176,6 +176,12 @@ func (prc *ProverConfig) getForkParameters() *lctypes.ForkParameters {
 					Epoch:   364032,
 					Spec:    &ElectraSpec,
 				},
+				// ref: https://github.com/ethereum/consensus-specs/blob/v1.6.0/configs/mainnet.yaml#L55-L57
+				{
+					Version: []byte{6, 0, 0, 0},
+					Epoch:   411392,
+					Spec:    &FuluSpec,
+				},
 			},
 		}
 	case Minimal:
