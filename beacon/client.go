@@ -123,5 +123,9 @@ func (cl Client) get(ctx context.Context, path string, res any) error {
 	if err != nil {
 		return err
 	}
+	if r.StatusCode < 200 || r.StatusCode >= 300 {
+		log.GetLogger().DebugContext(ctx, "Non 2xx response to Beacon API request", "endpoint", cl.endpoint+path, "status code", r.StatusCode)
+		return fmt.Errorf("request returned status code %d", r.StatusCode)
+	}
 	return json.Unmarshal(bz, &res)
 }
