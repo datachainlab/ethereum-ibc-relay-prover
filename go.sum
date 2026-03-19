@@ -402,8 +402,8 @@ github.com/d4l3k/messagediff v1.2.1 h1:ZcAIMYsUg0EAp9X+tt8/enBE/Q8Yd5kzPynLyKptt
 github.com/d4l3k/messagediff v1.2.1/go.mod h1:Oozbb1TVXFac9FtSIxHBMnBCq2qeH/2KkEQxENCrlLo=
 github.com/danieljoos/wincred v1.1.2 h1:QLdCxFs1/Yl4zduvBdcHB8goaYk9RARS2SgLLRuAyr0=
 github.com/danieljoos/wincred v1.1.2/go.mod h1:GijpziifJoIBfYh+S7BbkdUTU4LfM+QnGqR5Vl2tAx0=
-github.com/datachainlab/ethereum-ibc-relay-chain v0.3.17 h1:oyDLIbc9hyp31c3OoIB5wHm51tpyDrYAu1KBA1KxfEw=
-github.com/datachainlab/ethereum-ibc-relay-chain v0.3.17/go.mod h1:sf+ti1uM1joxhukxIyj8oDQ5yf7d+e+nl+3vtn9f5CM=
+github.com/datachainlab/ethereum-ibc-relay-chain v0.3.21 h1:vbTDtACccXprQAjpYrFWwdROyO5nS+lmnwPUt7/ZN/s=
+github.com/datachainlab/ethereum-ibc-relay-chain v0.3.21/go.mod h1:GT1LRgak5RWkyvyzgptmcWgxD3lz3bD0pI4736vROew=
 github.com/datachainlab/ibc-mock-client v0.4.3 h1:vFl8P4lx0aAgvnZIMfmwhDcj8atps1aP+sthzKdVNo8=
 github.com/datachainlab/ibc-mock-client v0.4.3/go.mod h1:Fn37FzeevLp5gmla4TSoDY56Jm2tBcqz+p0lIyRCOsg=
 github.com/davecgh/go-spew v1.1.0/go.mod h1:J7Y8YcW2NihsgmVo/mv3lAwl/skON4iLHjSsI+c5H38=
