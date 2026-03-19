@@ -1,15 +1,15 @@
 module github.com/datachainlab/ethereum-ibc-relay-prover
 
-go 1.22.0
+go 1.23.0
 
 require (
 	cosmossdk.io/store v1.0.2
 	github.com/cosmos/cosmos-sdk v0.50.5
 	github.com/cosmos/gogoproto v1.4.11
 	github.com/cosmos/ibc-go/v8 v8.2.1
-	github.com/datachainlab/ethereum-ibc-relay-chain v0.3.17
+	github.com/datachainlab/ethereum-ibc-relay-chain v0.3.21
 	github.com/ethereum/go-ethereum v1.14.12
-	github.com/hyperledger-labs/yui-relayer v0.5.16
+	github.com/hyperledger-labs/yui-relayer v0.5.20
 	github.com/prysmaticlabs/fastssz v0.0.0-20241008181541-518c4ce73516
 	github.com/prysmaticlabs/prysm/v5 v5.2.0
 	github.com/spf13/cobra v1.8.0
@@ -230,7 +230,7 @@ require (
 	golang.org/x/exp v0.0.0-20240808152545-0cdaa3abc0fa // indirect
 	golang.org/x/net v0.35.0 // indirect
 	golang.org/x/oauth2 v0.26.0 // indirect
-	golang.org/x/sync v0.11.0 // indirect
+	golang.org/x/sync v0.16.0 // indirect
 	golang.org/x/sys v0.30.0 // indirect
 	golang.org/x/term v0.29.0 // indirect
 	golang.org/x/text v0.22.0 // indirect
