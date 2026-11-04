@@ -42,8 +42,6 @@ message Header {
   ConsensusUpdate consensus_update = 2;
   ExecutionUpdate execution_update = 3;
   AccountUpdate account_update = 4;
-  // seconds from unix epoch
-  uint64 timestamp = 5;
 }
 
 message FinalizedHeaderMisbehaviour {

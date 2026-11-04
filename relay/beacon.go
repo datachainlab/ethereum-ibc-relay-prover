@@ -32,14 +32,17 @@ func (pr *Prover) computeEpoch(slot uint64) uint64 {
 	return lcrelay.ComputeEpoch(pr.config.Network, slot)
 }
 
-func (pr *Prover) getSlotAtTimestamp(ctx context.Context, timestamp uint64) (uint64, error) {
-	return lcrelay.GetSlotAtTimestamp(ctx, pr.beaconClient, pr.config.Network, timestamp)
-}
-
 func (pr *Prover) getPeriodWithBlockNumber(ctx context.Context, blockNumber uint64) (uint64, error) {
-	return lcrelay.GetPeriodWithBlockNumber(ctx, pr.beaconClient, pr.executionClient, pr.config.Network, blockNumber)
+	return lcrelay.GetPeriodWithBlockNumber(ctx, pr.beaconClient, pr.executionClient.Raw(), pr.config.Network, pr.config.getForkParameters(), blockNumber)
 }
 
-func (pr *Prover) buildExecutionUpdateFromFinalizedHeader(_ context.Context, finalizedHeader *beacon.LightClientHeader) (*lctypes.ExecutionUpdate, uint64, error) {
-	return lcrelay.BuildExecutionUpdateFromFinalizedHeader(finalizedHeader, false)
+// getConsensusStateSlotWithBlockNumber returns the beacon slot a consensus state created for
+// `blockNumber` records. Post-Gloas this is not the slot the execution block itself was
+// produced at, see lcrelay.GetConsensusStateSlotWithBlockNumber.
+func (pr *Prover) getConsensusStateSlotWithBlockNumber(ctx context.Context, blockNumber uint64) (uint64, error) {
+	return lcrelay.GetConsensusStateSlotWithBlockNumber(ctx, pr.beaconClient, pr.executionClient.Raw(), pr.config.Network, pr.config.getForkParameters(), blockNumber)
+}
+
+func (pr *Prover) buildExecutionUpdateFromFinalizedHeader(ctx context.Context, finalizedHeader *beacon.LightClientHeader) (*lctypes.ExecutionUpdate, error) {
+	return lcrelay.BuildExecutionUpdateFromFinalizedHeader(ctx, pr.executionClient.Raw(), finalizedHeader, false)
 }

@@ -1,8 +1,6 @@
 package types
 
 import (
-	"fmt"
-
 	clienttypes "github.com/cosmos/ibc-go/v8/modules/core/02-client/types"
 	"github.com/cosmos/ibc-go/v8/modules/core/exported"
 )
@@ -26,9 +24,6 @@ func (h *Header) ValidateBasic() error {
 	}
 	if err := h.AccountUpdate.ValidateBasic(); err != nil {
 		return err
-	}
-	if h.Timestamp == 0 {
-		return fmt.Errorf("timestamp cannot be zero")
 	}
 	return nil
 }

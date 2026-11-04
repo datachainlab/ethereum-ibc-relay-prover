@@ -231,7 +231,7 @@ func (pr *Prover) buildInitialState(ctx context.Context, blockNumber uint64) (*I
 	}
 	finalizedHeader := &res.Data.FinalizedHeader
 
-	executionUpdate, _, err := pr.buildExecutionUpdateFromFinalizedHeader(ctx, finalizedHeader)
+	executionUpdate, err := pr.buildExecutionUpdateFromFinalizedHeader(ctx, finalizedHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build execution update from finalized header: %v", err)
 	}
@@ -250,9 +250,12 @@ func (pr *Prover) buildInitialState(ctx context.Context, blockNumber uint64) (*I
 		return nil, fmt.Errorf("ethereum timestamp must be truncated to seconds: timestamp=%v truncated_timestamp=%v", timestamp, truncatedTm)
 	}
 
-	slot, err := pr.getSlotAtTimestamp(ctx, uint64(timestamp.Unix()))
+	// Must match how SetupHeadersForUpdate derives the period from the stored height,
+	// otherwise the committees recorded here and the ones sent on the next update
+	// disagree whenever the finalized slot is the first slot of a period.
+	slot, err := pr.getConsensusStateSlotWithBlockNumber(ctx, blockNumber)
 	if err != nil {
-		return nil, fmt.Errorf("failed to compute slot at timestamp: %v", err)
+		return nil, fmt.Errorf("failed to compute consensus state slot: block_number=%v %v", blockNumber, err)
 	}
 
 	period := pr.computeSyncCommitteePeriod(pr.computeEpoch(slot))
@@ -298,7 +301,7 @@ func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (headers core.He
 	lcUpdate := res.Data.ToProto()
 	finalizedHeader := &res.Data.FinalizedHeader
 
-	executionUpdate, timestamp, err := pr.buildExecutionUpdateFromFinalizedHeader(ctx, finalizedHeader)
+	executionUpdate, err := pr.buildExecutionUpdateFromFinalizedHeader(ctx, finalizedHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build execution update from finalized header: %v", err)
 	}
@@ -312,12 +315,11 @@ func (pr *Prover) GetLatestFinalizedHeader(ctx context.Context) (headers core.He
 	if err != nil {
 		return nil, fmt.Errorf("failed to build account update: %v", err)
 	}
-	pr.GetLogger().InfoContext(ctx, "build latest finalized header", "block_number", executionUpdate.BlockNumber, "timestamp", timestamp, "state_root", hex.EncodeToString(executionUpdate.StateRoot))
+	pr.GetLogger().InfoContext(ctx, "build latest finalized header", "block_number", executionUpdate.BlockNumber, "state_root", hex.EncodeToString(executionUpdate.StateRoot))
 	return &lctypes.Header{
 		ConsensusUpdate: lcUpdate,
 		ExecutionUpdate: executionUpdate,
 		AccountUpdate:   accountUpdate,
-		Timestamp:       timestamp,
 	}, nil
 }
 
@@ -413,7 +415,7 @@ func (pr *Prover) buildNextSyncCommitteeUpdate(ctx context.Context, period uint6
 	lcUpdate := res.Data.ToProto()
 	finalizedHeader := &res.Data.FinalizedHeader
 
-	executionUpdate, timestamp, err := pr.buildExecutionUpdateFromFinalizedHeader(ctx, finalizedHeader)
+	executionUpdate, err := pr.buildExecutionUpdateFromFinalizedHeader(ctx, finalizedHeader)
 	if err != nil {
 		return nil, fmt.Errorf("failed to build execution update from finalized header: %v", err)
 	}
@@ -436,7 +438,6 @@ func (pr *Prover) buildNextSyncCommitteeUpdate(ctx context.Context, period uint6
 		ConsensusUpdate: lcUpdate,
 		ExecutionUpdate: executionUpdate,
 		AccountUpdate:   accountUpdate,
-		Timestamp:       timestamp,
 	}, nil
 }
 

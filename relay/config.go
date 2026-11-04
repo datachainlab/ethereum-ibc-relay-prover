@@ -55,7 +55,7 @@ func (prc ProverConfig) Validate() error {
 	}
 	for hf := range prc.MinimalForkSched {
 		switch hf {
-		case lcrelay.Altair, lcrelay.Bellatrix, lcrelay.Capella, lcrelay.Deneb, lcrelay.Electra, lcrelay.Fulu:
+		case lcrelay.Altair, lcrelay.Bellatrix, lcrelay.Capella, lcrelay.Deneb, lcrelay.Electra, lcrelay.Fulu, lcrelay.Gloas:
 			// OK
 		default:
 			return fmt.Errorf("config attribute \"minimal_fork_sched\" contains an unknown key: %s", hf)
